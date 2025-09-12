@@ -13,16 +13,16 @@ import {
 
 const ProductCard = () => {
   return (
-    <Card className="w-full h-[70vh] shadow-lg">
+    <Card className="w-full h-[70vh] shadow-lg border-y-2 border-y-amber-400">
       {/* <CardHeader>
         <CardTitle>Traditional Warli Artform</CardTitle>
         <CardDescription>
           Enter your email below to login to your account
         </CardDescription>
       </CardHeader> */}
-      <CardContent className="flex">
+      <CardContent className="flex bg-white">
         <div className="flex-1 p-2 shadow-lg rounded-md flex items-center justify-center">
-            <img src="https://dnn24.com/wp-content/uploads/2025/02/Kohbar-Painting-.jpg" 
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfdkstspqR0mFhMgNqOPwGyFnapT77Q0QUVw&s" 
             className="w-full aspect-square"/>
         </div>
         <div className="flex-1 px-10 flex-col flex gap-3 w-full rounded-md py-4 border-[0.5]
@@ -48,7 +48,7 @@ const ProductCard = () => {
             <Button className="p-6 bg-[#ff5040] ">
                 Purchase Now
             </Button>
-            <Button className="p-6 border-1 bg-transparent text-gray-400 font-light">
+            <Button className="p-6 border-1 bg-transparent font-light border-amber-400 text-amber-500">
                 Undo Customisation
             </Button>
         </div>

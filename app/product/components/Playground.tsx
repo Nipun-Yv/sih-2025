@@ -25,28 +25,42 @@ const hexes = [
 const Playground = () => {
     const [selectedFiles,setSelectedFiles]=useState<File[]>([])
     const [prompt,setPrompt]=useState<string>("")
+    const [loader,setLoader]=useState<boolean>(false)
+    const [centerDisplayUrl,setCenterDisplayUrl]=useState<string>("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfdkstspqR0mFhMgNqOPwGyFnapT77Q0QUVw&s")
     const submitRequest=async()=>{
+       const response = await fetch(centerDisplayUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch the image from ${centerDisplayUrl}`);
+        }
+        const imageBlob = await response.blob();
         const formData = new FormData();
+        formData.append("images", imageBlob, "center_display_image.png");
         selectedFiles.forEach((file, idx) => {
             formData.append("images", file);
         });
         formData.set("prompt",prompt)
         try {
-            console.log(process.env.NANO_NODE_API_URL)
+            setLoader(true)
             const response = await axios.post(`${process.env.NEXT_PUBLIC_NANO_NODE_API_URL}/image-gen/redesign`, 
-            formData
-            );
-            const data = response.data
-        }
-        catch(err){
 
+            formData,{ responseType: 'arraybuffer'}
+            );
+            const imageBlob = new Blob([response.data], { type: response.headers['content-type'] });
+            const imageUrl = URL.createObjectURL(imageBlob);
+            setCenterDisplayUrl(imageUrl)
+        }
+        catch(err:any){
+            console.error("Unable to render image",err.message)
+        }
+        finally{
+            setLoader(false)
         }
     }
   return (
     <div className="bg-white h-full w-full shadow-xl rounded-md flex flex-col">
         <div className="basis-[75%] flex max-h-[75%]">
-            <ImagePrompting selectedFiles={selectedFiles} setSelectedFiles={setSelectedFiles}
-            prompt={prompt} setPrompt={setPrompt}/>
+            <ImagePrompting loader={loader} selectedFiles={selectedFiles} setSelectedFiles={setSelectedFiles}
+            prompt={prompt} setPrompt={setPrompt} centerDisplayUrl={centerDisplayUrl}/>
         </div>
         <div className="flex-[0.6] flex pl-5">
             <ColorPalette colors={hexes}/>

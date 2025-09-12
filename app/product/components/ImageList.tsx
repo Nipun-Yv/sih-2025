@@ -2,6 +2,7 @@
 
 import { InputEvent, useRef, useState } from "react";
 import { FaPlus } from "react-icons/fa6"
+import ImagePreview from "./ImagePreview";
 const ImageList = ({selectedFiles,setSelectedFiles}:{selectedFiles:File[],
     setSelectedFiles:React.Dispatch<React.SetStateAction<File[]>>}) => {
         
@@ -27,20 +28,12 @@ const ImageList = ({selectedFiles,setSelectedFiles}:{selectedFiles:File[],
   };
   return (
     <div className="h-full w-full p-3 flex flex-col gap-3 overflow-scroll border-1 rounded-bl-md items-center
-    bg-amber-500">
-        {/* <div className="aspect-square w-[90%] border-2 rounded-md flex items-center justify-center shadow-lg">
-            <img src="https://i.pinimg.com/474x/e7/b0/51/e7b051c4a63846ab832e54c700937230.jpg" 
-            className="h-full w-full rounded-md opacity-[0.6]"/>
-        </div> */}
+    bg-amber-500 shadow-md">
         {selectedFiles.map((file,index)=>{
-          const previewUrl = URL.createObjectURL(file);
           return (
             <div className="aspect-square w-[90%] border-2 rounded-md shadow-lg relative"
-            key={previewUrl}>
-                <img                 
-                src={previewUrl}
-                alt={`preview-${index}`}
-                className="h-full w-full rounded-md opacity-[0.8]"/>
+            key={file.name}>
+                <ImagePreview file={file} />
                 <button
                 onClick={() => handleRemoveFile(index)}
                 className="absolute -top-2 -right-2 bg-white text-amber-600 border-0 
@@ -51,9 +44,9 @@ const ImageList = ({selectedFiles,setSelectedFiles}:{selectedFiles:File[],
             </div>)
         })
         }
-        <div className="aspect-square w-[90%] border-2 rounded-md flex  flex-col items-center justify-center shadow-lg"
+        <div className="aspect-square w-[90%] border-2 border-amber-400 rounded-md flex  flex-col items-center justify-center shadow-lg"
             onClick={handlePlusClick}>
-            <FaPlus size={40} className="text-white"/>
+            <FaPlus size={30} className="text-white font-light"/>
             <input
                 type="file"
                 multiple
