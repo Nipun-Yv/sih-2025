@@ -22,11 +22,11 @@ const hexes = [
   '#FFF7E6'  // near-white apricot
 ];
 
-const Playground = () => {
+const Playground = ({displayUrl}:{displayUrl:string}) => {
     const [selectedFiles,setSelectedFiles]=useState<File[]>([])
     const [prompt,setPrompt]=useState<string>("")
     const [loader,setLoader]=useState<boolean>(false)
-    const [centerDisplayUrl,setCenterDisplayUrl]=useState<string>("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfdkstspqR0mFhMgNqOPwGyFnapT77Q0QUVw&s")
+    const [centerDisplayUrl,setCenterDisplayUrl]=useState<string>(displayUrl)
     const submitRequest=async()=>{
        const response = await fetch(centerDisplayUrl);
         if (!response.ok) {
@@ -68,8 +68,8 @@ const Playground = () => {
                 <p className="text-gray-500 text-xs font-thin">Please note, the template generated would only serve as a reference for the artisan for the purposes
                     of design, it is not guaranteed that the final product will match the  image
                 </p>
-                <Button variant={"outline"} className="flex-1 border-amber-500 font-thin"
-                onClick={submitRequest}>
+                <Button variant={"outline"} className="flex-1 border-amber-500 font-thin hover:cursor-pointer"
+                onClick={submitRequest} disabled={loader}>
                     Generate Ideas
                 </Button>
             </div>

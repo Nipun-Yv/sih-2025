@@ -20,7 +20,7 @@ const AdditionalProductCard: React.FC<ProductCardProps> = ({
         <img 
           src={imageUrl} 
           alt={name} 
-          className='h-[100%] overflow-hidden object-cover' 
+          className='h-[100%] overflow-hidden object-cover rounded-l-xl' 
           
         />
       </div>
