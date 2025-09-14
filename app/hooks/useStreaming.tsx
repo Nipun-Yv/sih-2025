@@ -1,10 +1,8 @@
 "use client";
-import { useStreamingContext } from "../contexts/StreamingContext";
+import { useStreamingContext } from "../../contexts/StreamingContext";
 import { CalendarActivity, ItineraryItem } from "@/types/Activity";
 import { ConnectionStatus, SSEMessage } from "@/types/SSE";
-import axios from "axios";
-import { redirect } from "next/navigation";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import{ useEffect, useRef, useState, useCallback } from "react";
 
 const useStreaming = () => {
   const { itineraryItems, setItineraryItems, isComplete, setIsComplete } =
@@ -31,14 +29,16 @@ const useStreaming = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     try {
-      const { data: user } = await axios.get("/api/user");
-      if (!user) {
-        redirect("/auth");
-      }
+      // const { data: user } = await axios.get("/api/user");
+      // if (!user) {
+      //   redirect("/auth");
+      // }
 
       const eventSource = new EventSource(
-        `${apiUrl}/stream-itinerary-sse/${user.id}`
+        `${apiUrl}/stream-itinerary-sse/sample`
       );
+
+      console.log(apiUrl)
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = (): void => {

@@ -1,5 +1,5 @@
 import { Activity } from '@/types/Activity';
-import { useMap } from '../contexts/MapContext';
+import { useMap } from '../../contexts/MapContext';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import React from 'react'
 const containerStyle: React.CSSProperties = {

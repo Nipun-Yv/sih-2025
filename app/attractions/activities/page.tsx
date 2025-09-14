@@ -7,11 +7,9 @@ import axios from "axios";
 import DraggableTextarea from "../components/DraggableTextArea";
 import ActivityCard from "../components/ActivityCard";
 import ActivityMap from "../components/ActivityMap";
-// import useStreaming from "../hooks/useStreaming";
-// import { useStreamingContext } from "../contexts/StreamingContext";
 import { Activity } from "@/types/Activity";
 import { Attraction } from "@/types/Attraction";
-import { MapProvider } from "../contexts/MapContext";
+import { MapProvider } from "../../contexts/MapContext";
 
 export default function ActivitiesPage({ params }: { params: any }) {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -147,14 +145,14 @@ export default function ActivitiesPage({ params }: { params: any }) {
       const activityIds = selectedActivities.map((a) => a.id);
 
       const springApiBaseUrl = process.env.NEXT_PUBLIC_SPRING_API_URL;
-      const { data: user } = await axios.get("/api/user");
-      if (!user) {
-        router.push("/auth");
-        return;
-      }
+      // const { data: user } = await axios.get("/api/user");
+      // if (!user) {
+      //   router.push("/auth");
+      //   return;
+      // }
       await axios.post(`${springApiBaseUrl}/activities`, {
         selectedActivities: activityIds,
-        userId: user.id,
+        userId: "sample",
         locationId: "delhi_india",
       });
       router.push(`/itinerary`);
@@ -318,8 +316,8 @@ export default function ActivitiesPage({ params }: { params: any }) {
                   );
                   return {
                     ...activity,
-                    attractionImageUrl: attraction.imageUrl,
-                    attractionName: attraction.name,
+                    attractionImageUrl: (attraction as Attraction).imageUrl,
+                    attractionName: (attraction as Attraction).name,
                   };
                 })}
               />
