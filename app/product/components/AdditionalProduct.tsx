@@ -17,8 +17,7 @@ const AdditionalProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const router=useRouter()
   return (
-    <div className='flex min-w-[350px] h-[25vh] max-h-[25vh] rounded-xl
-     bg-white shadow-lg font-sans'>
+    <div className='flex min-w-[350px] h-[25vh] max-h-[25vh] rounded-xl bg-white shadow-xl font-sans'>
       <div className='flex-1 h-full overflow-hidden'>
         <img 
           src={img_url} 
