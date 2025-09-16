@@ -30,6 +30,7 @@ export default function ActivitiesPage({ params }: { params: any }) {
     try {
       const attractionsData = await Promise.all(
         attractionIds.map(async (id) => {
+          console.log("Printing the key where getting the error",process.env.NEXT_PUBLIC_NANO_NODE_API_URL)
           const response = await axios.get(`${process.env.NEXT_PUBLIC_NANO_NODE_API_URL}/explore/attractions/${id}`)
           return response.data
         })
