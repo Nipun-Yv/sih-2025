@@ -1,0 +1,168 @@
+.
+├── .env
+├── .gitignore
+├── app
+│   ├── api
+│   │   ├── creator
+│   │   │   ├── calculate-score
+│   │   │   │   └── route.ts
+│   │   │   ├── contract
+│   │   │   │   ├── route.ts
+│   │   │   │   └── sign
+│   │   │   │       └── route.ts
+│   │   │   ├── init
+│   │   │   │   └── route.ts
+│   │   │   ├── update-status
+│   │   │   │   └── route.ts
+│   │   │   └── verify-youtube
+│   │   │       └── route.ts
+│   │   └── users
+│   │       ├── create
+│   │       │   └── route.ts
+│   │       ├── update-metadata
+│   │       │   └── route.ts
+│   │       └── update-role
+│   │           └── route.ts
+│   ├── attractions
+│   │   ├── activities
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── components
+│   │   │   ├── ActivityCard.tsx
+│   │   │   ├── ActivityMap.tsx
+│   │   │   └── DraggableTextArea.tsx
+│   │   └── page.tsx
+│   ├── contexts
+│   │   ├── HotelContext.tsx
+│   │   ├── MapContext.tsx
+│   │   └── StreamingContext.tsx
+│   ├── creator
+│   │   ├── analytics
+│   │   │   └── page.tsx
+│   │   ├── components
+│   │   │   ├── ContractViewer.tsx
+│   │   │   ├── CreatorCard.tsx
+│   │   │   ├── CreatorSidebar.tsx
+│   │   │   ├── EngagementChart.tsx
+│   │   │   ├── MetricCard.tsx
+│   │   │   ├── StatusTimeline.tsx
+│   │   │   └── TierBadge.tsx
+│   │   ├── contract
+│   │   │   └── page.tsx
+│   │   ├── incentives
+│   │   │   └── page.tsx
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── verification
+│   │       └── page.tsx
+│   ├── explore-products
+│   │   └── page.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── hooks
+│   │   ├── useAuth.ts
+│   │   └── useStreaming.tsx
+│   ├── itinerary
+│   │   ├── components
+│   │   │   ├── ActivityNameList.tsx
+│   │   │   ├── HotelCard.tsx
+│   │   │   ├── HotelCarousel.tsx
+│   │   │   ├── ItineraryLoadingBar.tsx
+│   │   │   ├── RoleBasedRoute.tsx
+│   │   │   ├── RouteMap.tsx
+│   │   │   └── TripCalendar.tsx
+│   │   ├── hooks
+│   │   │   ├── useAutoScroll.tsx
+│   │   │   └── useStreaming.tsx
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── product
+│   │   ├── [id]
+│   │   │   └── page.tsx
+│   │   └── components
+│   │       ├── AdditionalProduct.tsx
+│   │       ├── ColorPalette.tsx
+│   │       ├── ImageList.tsx
+│   │       ├── ImagePreview.tsx
+│   │       ├── ImagePrompting.tsx
+│   │       ├── Playground.tsx
+│   │       ├── ProductCard.tsx
+│   │       └── ProductList.tsx
+│   ├── select-role
+│   │   └── page.tsx
+│   ├── sign-in
+│   │   └── [[...sign-in]]
+│   │       └── page.tsx
+│   ├── sign-up
+│   │   └── [[...sign-up]]
+│   │       └── page.tsx
+│   └── vendor
+│       ├── certificate
+│       │   ├── DigitalCertificateSystem.tsx
+│       │   └── page.tsx
+│       ├── layout.tsx
+│       └── verification
+│           ├── guide
+│           │   └── page.tsx
+│           └── service-provider
+│               ├── activities
+│               │   └── page.tsx
+│               ├── food
+│               │   └── page.tsx
+│               ├── hotels
+│               │   └── page.tsx
+│               └── transportation
+│                   └── page.tsx
+├── components
+│   ├── Comment.tsx
+│   ├── Home.tsx
+│   ├── Navbar.tsx
+│   ├── ui
+│   │   ├── alert.tsx
+│   │   ├── badge.tsx
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── checkbox.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── select.tsx
+│   │   ├── tabs.tsx
+│   │   └── textarea.tsx
+│   └── Verification.tsx
+├── components.json
+├── eslint.config.mjs
+├── lib
+│   ├── mongoose.ts
+│   └── utils.ts
+├── middleware.ts
+├── models
+│   ├── Contract.ts
+│   ├── Creator.ts
+│   └── User.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── README.md
+├── structure.txt
+├── tsconfig.json
+├── types
+│   ├── Activity.ts
+│   ├── Attraction.ts
+│   ├── Hotel.ts
+│   ├── Product.ts
+│   ├── SSE.ts
+│   └── User.ts
+└── utils
+    └── clerk-helpers.ts
+
+53 directories, 113 files
