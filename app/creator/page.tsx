@@ -24,7 +24,7 @@ export default async function CreatorDashboard() {
       case 'contract_pending':
         return { text: 'Sign Contract', href: '/creator/contract' };
       case 'contract_signed':
-        return { text: 'Plan Journey', href: '/itinerary' };
+        return { text: 'Plan Journey', href: '/attractions' };
       default:
         return null;
     }

@@ -169,7 +169,7 @@ export default function IncentivesPage() {
                 View Contract
               </Button>
               <Button
-                onClick={() => router.push("/itinerary")}
+                onClick={() => router.push("/attractions")}
                 variant="outline"
                 className="border-orange-500 text-orange-600 hover:bg-orange-50"
               >
