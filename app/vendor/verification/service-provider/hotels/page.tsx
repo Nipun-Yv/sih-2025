@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building, Upload, MapPin, Star, Wifi, Car, UtensilsCrossed } from "lucide-react";
-
-// Type definitions
+import { useUser } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
+import { initializeRazorpayPayment,PaymentConfigs,RazorpayResponse } from "@/utils/razorpay";
 interface FormData {
   businessName: string;
   ownerName: string;
@@ -101,7 +102,7 @@ export default function HotelVerification() {
     "Tour Desk", "Garden/Outdoor Space", "Balcony/Terrace", "Air Conditioning", "Heating",
     "Pet Friendly", "Wheelchair Accessible", "Currency Exchange", "Bicycle Rental"
   ];
-
+  const {user}=useUser()
   const handleInputChange = (name: FormDataKey, value: string | boolean): void => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -119,40 +120,140 @@ export default function HotelVerification() {
       }));
     }
   };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const handleFileChange = (fieldName: FilesKey, file: File | FileList | null): void => {
     setFiles(prev => ({ ...prev, [fieldName]: file }));
   };
+  const processPayment = async (): Promise<RazorpayResponse> => {
+    const paymentOptions = {
+      ...PaymentConfigs.GUIDE_REGISTRATION,
+      prefill: {
+        name: formData.businessName,
+        email: formData.email,
+        contact: formData.phone,
+      },
+    };
+
+    return await initializeRazorpayPayment(paymentOptions);
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    
-    const submitData = new FormData();
-    
-    (Object.keys(formData) as FormDataKey[]).forEach(key => {
-      const value = formData[key];
-      if (Array.isArray(value)) {
-        submitData.append(key, JSON.stringify(value));
-      } else {
-        submitData.append(key, value.toString());
+    if(!formData.agreeToTerms){
+      setSubmitMessage({type:'error',message:'Please agree to terms and conditions'})
+    }
+    if(!user){
+      setSubmitMessage({type:'error',message:'Please log in to submit application'})
+      return
+    }
+    setIsSubmitting(true);
+    setSubmitMessage(null);
+    try{
+      console.log("Initialising payment")
+      const paymentResponse=await processPayment()
+      if(!paymentResponse.razorpay_payment_id){
+        throw new Error('Payment not completed')
       }
-    });
+      const submitData=new FormData();
+
     
-    (Object.keys(files) as FilesKey[]).forEach(key => {
-      const file = files[key];
-      if (file) {
-        if (file instanceof FileList) {
-          Array.from(file).forEach((f, index) => {
-            submitData.append(`${key}[${index}]`, f);
-          });
+      (Object.keys(formData) as FormDataKey[]).forEach(key => {
+        const value = formData[key];
+        if (Array.isArray(value)) {
+          submitData.append(key, JSON.stringify(value));
         } else {
-          submitData.append(key, file);
+          submitData.append(key, value.toString());
         }
-      }
+      });
+      
+      (Object.keys(files) as FilesKey[]).forEach(key => {
+        const file = files[key];
+        if (file) {
+          if (file instanceof FileList) {
+            Array.from(file).forEach((f, index) => {
+              submitData.append(`${key}[${index}]`, f);
+            });
+          } else {
+            submitData.append(key, file);
+          }
+        }
+      });
+    
+
+    submitData.append('razorpayPaymentId', paymentResponse.razorpay_payment_id);
+    if (paymentResponse.razorpay_order_id) {
+      submitData.append('razorpayOrderId', paymentResponse.razorpay_order_id);
+    }
+    if (paymentResponse.razorpay_signature) {
+      submitData.append('razorpaySignature', paymentResponse.razorpay_signature);
+    }
+    submitData.append('razorpayAmount', PaymentConfigs.GUIDE_REGISTRATION.amount.toString());
+    submitData.append('userId', user.id);
+    console.log('Submitting application')
+    const response=await fetch('/api/submit-hotel-application',{
+      method:'POST',
+      body:submitData,
+    });
+    const result=await response.json();
+    if(!response.ok){
+      throw new Error(result.message || 'Submission failed')
+    }
+    console.log("Response in the frontend is ",response)
+    setSubmitMessage({
+      type:'success',
+      message:`Application submitted successfully`
+    });
+    setFormData({
+      businessName: "",
+      ownerName: "",
+      email: "",
+      phone: "",
+      alternatePhone: "",
+      address: "",
+      city: "",
+      pincode: "",
+      businessType: "",
+      establishedYear: "",
+      totalRooms: "",
+      roomTypes: [],
+      priceRange: "",
+      amenities: [],
+      description: "",
+      websiteUrl: "",
+      socialMediaLinks: "",
+      operatingHours: "",
+      cancellationPolicy: "",
+      checkInTime: "",
+      checkOutTime: "",
+      gstNumber: "",
+      panNumber: "",
+      agreeToTerms: false
+    });
+  
+    setFiles({
+      businessLicense: null,
+      hotelPhotos: null,
+      roomPhotos: null,
+      menuCard: null,
+      gstCertificate: null,
+      panCard: null
     });
     
-    console.log("Hotel verification submitted:", formData, files);
-  };
+    console.log("Food service verification submitted:", formData, files);
+  }
+  catch(error:any){
+    console.error('Submission error:', error);
+    setSubmitMessage({
+      type: 'error',
+      message: error || 'Failed to submit application. Please try again.'
+    });
+  }finally{
+    setIsSubmitting(false);
+  }
+}
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -277,7 +378,6 @@ export default function HotelVerification() {
                 </div>
               </div>
 
-              {/* Address */}
               <div>
                 <Label htmlFor="address">Complete Address *</Label>
                 <Textarea
@@ -557,8 +657,19 @@ export default function HotelVerification() {
                 </AlertDescription>
               </Alert>
 
-              <Button type="submit" className="w-full" size="lg">
-                Submit Property for Verification
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting || !formData.agreeToTerms}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment & Submitting...
+                  </>
+                ) : (
+                  'Pay ₹100 & Submit Application'
+                )}
               </Button>
             </form>
           </CardContent>

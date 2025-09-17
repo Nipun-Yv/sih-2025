@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Car, Upload, MapPin, Shield, Clock, Phone } from "lucide-react";
+import { Car, Upload, MapPin, Shield, Clock, Phone, Loader2 } from "lucide-react";
+import { initializeRazorpayPayment, PaymentConfigs, RazorpayResponse } from "@/utils/razorpay";
+import { useUser } from "@clerk/nextjs";
 
 // Type definitions
 interface FormData {
@@ -64,6 +66,8 @@ type VehicleKey = keyof Vehicle;
 type FilesKey = keyof Files;
 
 export default function TransportationVerification(){
+  const { user } = useUser();
+  
   const [formData, setFormData] = useState<FormData>({
     businessName: "",
     ownerName: "",
@@ -111,6 +115,9 @@ export default function TransportationVerification(){
     vehiclePhotos: null,
     panCard: null
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const serviceTypes: string[] = [
     "Taxi Service", "Car Rental", "Bus Service", "Tempo Traveller", 
@@ -194,36 +201,161 @@ export default function TransportationVerification(){
     setFiles(prev => ({ ...prev, [fieldName]: file }));
   };
 
+  const processPayment = async (): Promise<RazorpayResponse> => {
+    const paymentOptions = {
+      ...PaymentConfigs.GUIDE_REGISTRATION,
+      prefill: {
+        name: formData.businessName,
+        email: formData.email,
+        contact: formData.phone,
+      },
+    };
+
+    return await initializeRazorpayPayment(paymentOptions);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
-    const submitData = new FormData();
-    
-    (Object.keys(formData) as FormDataKey[]).forEach(key => {
-      const value = formData[key];
-      if (Array.isArray(value)) {
-        submitData.append(key, JSON.stringify(value));
-      } else {
-        submitData.append(key, value.toString());
+    if (!formData.agreeToTerms) {
+      setSubmitMessage({ type: 'error', message: 'Please agree to terms and conditions' });
+      return;
+    }
+
+    if (!user) {
+      setSubmitMessage({ type: 'error', message: 'Please log in to submit application' });
+      return;
+    }
+
+    if (formData.operatingAreas.length === 0) {
+      setSubmitMessage({ type: 'error', message: 'Please select at least one operating area' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitMessage(null);
+
+    try {
+      console.log("Initializing payment");
+      const paymentResponse = await processPayment();
+      
+      if (!paymentResponse.razorpay_payment_id) {
+        throw new Error('Payment not completed');
       }
-    });
-    
-    submitData.append('vehicles', JSON.stringify(vehicles));
-    
-    (Object.keys(files) as FilesKey[]).forEach(key => {
-      const file = files[key];
-      if (file) {
-        if (file instanceof FileList) {
-          Array.from(file).forEach((f, index) => {
-            submitData.append(`${key}[${index}]`, f);
-          });
+
+      const submitData = new FormData();
+      
+      (Object.keys(formData) as FormDataKey[]).forEach(key => {
+        const value = formData[key];
+        if (Array.isArray(value)) {
+          submitData.append(key, JSON.stringify(value));
         } else {
-          submitData.append(key, file);
+          submitData.append(key, value.toString());
         }
+      });
+      
+      submitData.append('vehicles', JSON.stringify(vehicles));
+      
+      (Object.keys(files) as FilesKey[]).forEach(key => {
+        const file = files[key];
+        if (file) {
+          if (file instanceof FileList) {
+            Array.from(file).forEach((f, index) => {
+              submitData.append(`${key}[${index}]`, f);
+            });
+          } else {
+            submitData.append(key, file);
+          }
+        }
+      });
+
+      submitData.append('razorpayPaymentId', paymentResponse.razorpay_payment_id);
+      if (paymentResponse.razorpay_order_id) {
+        submitData.append('razorpayOrderId', paymentResponse.razorpay_order_id);
       }
-    });
-    
-    console.log("Transportation verification submitted:", formData, vehicles, files);
+      if (paymentResponse.razorpay_signature) {
+        submitData.append('razorpaySignature', paymentResponse.razorpay_signature);
+      }
+      submitData.append('razorpayAmount', PaymentConfigs.GUIDE_REGISTRATION.amount.toString());
+      submitData.append('userId', user.id);
+
+      console.log('Submitting transportation application');
+      
+      const response = await fetch('/api/submit-transport-application', {
+        method: 'POST',
+        body: submitData,
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Submission failed');
+      }
+
+      console.log("Response from API:", response);
+      
+      setSubmitMessage({
+        type: 'success',
+        message: 'Transportation application submitted successfully!'
+      });
+
+      setFormData({
+        businessName: "",
+        ownerName: "",
+        email: "",
+        phone: "",
+        panNumber: "",
+        address: "",
+        city: "",
+        serviceType: "",
+        vehicleCount: "",
+        operatingAreas: [],
+        serviceHours: "",
+        emergencyService: false,
+        airportService: false,
+        tourPackages: false,
+        description: "",
+        experience: "",
+        driverCount: "",
+        licenseNumber: "",
+        insuranceProvider: "",
+        baseCharges: "",
+        kmCharges: "",
+        waitingCharges: "",
+        cancellationPolicy: "",
+        agreeToTerms: false
+      });
+
+      setVehicles([{
+        type: "",
+        model: "",
+        year: "",
+        capacity: "",
+        features: [],
+        registrationNumber: "",
+        insuranceExpiry: "",
+        fitnessExpiry: ""
+      }]);
+
+      setFiles({
+        businessLicense: null,
+        drivingLicense: null,
+        vehicleRegistration: null,
+        insurance: null,
+        fitnessCredential: null,
+        vehiclePhotos: null,
+        panCard: null
+      });
+
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      setSubmitMessage({
+        type: 'error',
+        message: error.message || 'Failed to submit application. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -246,6 +378,14 @@ export default function TransportationVerification(){
           </CardHeader>
           
           <CardContent>
+            {submitMessage && (
+              <Alert className={`mb-6 ${submitMessage.type === 'error' ? 'border-red-500' : 'border-green-500'}`}>
+                <AlertDescription className={submitMessage.type === 'error' ? 'text-red-700' : 'text-green-700'}>
+                  {submitMessage.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Business Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,13 +468,13 @@ export default function TransportationVerification(){
                 </div>
 
                 <div>
-                  <Label htmlFor="panNumber">Alternate Phone</Label>
+                  <Label htmlFor="panNumber">PAN Number *</Label>
                   <Input
                     id="panNumber"
-                    type="tel"
                     value={formData.panNumber}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange("panNumber", e.target.value)}
-                    placeholder="+91 9876543210"
+                    placeholder="Enter PAN card number"
+                    required
                   />
                 </div>
 
@@ -344,7 +484,7 @@ export default function TransportationVerification(){
                     id="licenseNumber"
                     value={formData.licenseNumber}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange("licenseNumber", e.target.value)}
-                    placeholder="Enter license number"
+                    placeholder="Enter transport license number"
                     required
                   />
                 </div>
@@ -789,8 +929,20 @@ export default function TransportationVerification(){
                 </AlertDescription>
               </Alert>
 
-              <Button type="submit" className="w-full" size="lg">
-                Submit Transportation Service for Verification
+              <Button 
+                type="submit" 
+                className="w-full" 
+                size="lg"
+                disabled={isSubmitting || !formData.agreeToTerms}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment & Submitting...
+                  </>
+                ) : (
+                  'Pay ₹100 & Submit Application'
+                )}
               </Button>
             </form>
           </CardContent>

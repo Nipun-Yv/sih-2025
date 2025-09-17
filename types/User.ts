@@ -8,7 +8,7 @@ export enum UserRole {
     GUIDE = 'guide',
     ACCOMMODATION = 'accommodation',
     FOOD_RESTAURANT = 'food_restaurant',
-    TRANSPORTATION = 'transportation',
+    TRANSPORTATION = 'transport',
     ACTIVITY = 'activity'
   }
   

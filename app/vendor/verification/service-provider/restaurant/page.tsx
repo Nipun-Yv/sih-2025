@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UtensilsCrossed, Upload, MapPin, Clock, Users, Shield } from "lucide-react";
-
-// Type definitions
+import { initializeRazorpayPayment,PaymentConfigs,RazorpayResponse } from "@/utils/razorpay";
+import { useUser } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
 interface FormData {
   businessName: string;
   ownerName: string;
@@ -58,6 +59,7 @@ type FormDataKey = keyof FormData;
 type FilesKey = keyof Files;
 
 export default function FoodVerification() {
+  const {user}=useUser();
   const [formData, setFormData] = useState<FormData>({
     businessName: "",
     ownerName: "",
@@ -127,6 +129,9 @@ export default function FoodVerification() {
     "Cash", "Credit Card", "Debit Card", "UPI", "Digital Wallets", "Net Banking", "COD"
   ];
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
   const handleInputChange = (name: FormDataKey, value: string | boolean): void => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -148,11 +153,37 @@ export default function FoodVerification() {
   const handleFileChange = (fieldName: FilesKey, file: File | FileList | null): void => {
     setFiles(prev => ({ ...prev, [fieldName]: file }));
   };
+  const processPayment = async (): Promise<RazorpayResponse> => {
+    const paymentOptions = {
+      ...PaymentConfigs.GUIDE_REGISTRATION,
+      prefill: {
+        name: formData.businessName,
+        email: formData.email,
+        contact: formData.phone,
+      },
+    };
 
+    return await initializeRazorpayPayment(paymentOptions);
+  };
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    
-    const submitData = new FormData();
+    if(!formData.agreeToTerms){
+      setSubmitMessage({type:'error',message:'Please agree to terms and conditions'})
+    }
+    if(!user){
+      setSubmitMessage({type:'error',message:'Please log in to submit application'})
+      return
+    }
+    setIsSubmitting(true);
+    setSubmitMessage(null);
+    try{
+      console.log("Initialising payment")
+      const paymentResponse=await processPayment()
+      if(!paymentResponse.razorpay_payment_id){
+        throw new Error('Payment not completed')
+      }
+      const submitData=new FormData();
+
     
     (Object.keys(formData) as FormDataKey[]).forEach(key => {
       const value = formData[key];
@@ -176,8 +207,85 @@ export default function FoodVerification() {
       }
     });
     
+
+    submitData.append('razorpayPaymentId', paymentResponse.razorpay_payment_id);
+    if (paymentResponse.razorpay_order_id) {
+      submitData.append('razorpayOrderId', paymentResponse.razorpay_order_id);
+    }
+    if (paymentResponse.razorpay_signature) {
+      submitData.append('razorpaySignature', paymentResponse.razorpay_signature);
+    }
+    submitData.append('razorpayAmount', PaymentConfigs.GUIDE_REGISTRATION.amount.toString());
+    submitData.append('userId', user.id);
+    console.log('Submitting application')
+    const response=await fetch('/api/submit-restaurant-application',{
+      method:'POST',
+      body:submitData,
+    });
+    const result=await response.json();
+    if(!response.ok){
+      throw new Error(result.message || 'Submission failed')
+    }
+    console.log("Response in the frontend is ",response)
+    setSubmitMessage({
+      type:'success',
+      message:`Application submitted successfully`
+    });
+    setFormData({
+      businessName: "",
+      ownerName: "",
+      email: "",
+      phone: "",
+      alternatePhone: "",
+      address: "",
+      city: "",
+      businessType: "",
+      establishedYear: "",
+      cuisineTypes: [],
+      specialties: "",
+      seatingCapacity: "",
+      operatingHours: "",
+      deliveryService: false,
+      takeawayService: false,
+      cateringService: false,
+      onlineOrdering: false,
+      facilities: [],
+      hygieneRating: "",
+      staffCount: "",
+      chefExperience: "",
+      averageMealPrice: "",
+      description: "",
+      foodSafetyLicense: "",
+      gstNumber: "",
+      panNumber: "",
+      specialDiets: [],
+      paymentMethods: [],
+      agreeToTerms: false
+    });
+  
+    setFiles({
+      businessLicense: null,
+      foodSafetyLicense: null,
+      kitchenPhotos: null,
+      restaurantPhotos: null,
+      menuCard: null,
+      gstCertificate: null,
+      panCard: null,
+      hygieneCredentials: null
+    });
+    
     console.log("Food service verification submitted:", formData, files);
-  };
+  }
+  catch(error:any){
+    console.error('Submission error:', error);
+    setSubmitMessage({
+      type: 'error',
+      message: error || 'Failed to submit application. Please try again.'
+    });
+  }finally{
+    setIsSubmitting(false);
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -287,6 +395,7 @@ export default function FoodVerification() {
                     value={formData.alternatePhone}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange("alternatePhone", e.target.value)}
                     placeholder="+91 9876543210"
+                    required
                   />
                 </div>
 
@@ -363,7 +472,7 @@ export default function FoodVerification() {
                         <SelectValue placeholder="Select experience" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1-3">1-3 years</SelectItem>
+                        <SelectItem value="0-3">0-3 years</SelectItem>
                         <SelectItem value="4-7">4-7 years</SelectItem>
                         <SelectItem value="8-15">8-15 years</SelectItem>
                         <SelectItem value="15+">15+ years</SelectItem>
@@ -564,12 +673,13 @@ export default function FoodVerification() {
                 <h3 className="text-lg font-medium mb-4">Legal & Tax Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="gstNumber">GST Number</Label>
+                    <Label htmlFor="gstNumber">GST Number *</Label>
                     <Input
                       id="gstNumber"
                       value={formData.gstNumber}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange("gstNumber", e.target.value)}
                       placeholder="GST registration number"
+                      required
                     />
                   </div>
                   
@@ -705,8 +815,19 @@ export default function FoodVerification() {
                 </AlertDescription>
               </Alert>
 
-              <Button type="submit" className="w-full" size="lg">
-                Submit Restaurant for Verification
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting || !formData.agreeToTerms}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment & Submitting...
+                  </>
+                ) : (
+                  'Pay ₹100 & Submit Application'
+                )}
               </Button>
             </form>
           </CardContent>

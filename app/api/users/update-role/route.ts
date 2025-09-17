@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole, VendorType } from "@/types/User";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
+import { createClerkClient } from "@clerk/nextjs/server";
+
+const clerkClient = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY,
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,82 +15,99 @@ export async function POST(req: NextRequest) {
     
     if (!authUserId) {
       return NextResponse.json(
-        { error: "Unauthorized" }, 
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
+
     await dbConnect();
     const body = await req.json();
     const { 
-      clerkId, 
-      role, 
-      vendorType, 
-      isVerified, 
+      clerkId,
+      role,
+      vendorType,
+      isVerified,
       registrationStatus,
-      updatedAt 
+      updatedAt
     } = body;
 
-    // Security check: Ensure the authenticated user can only update their own role
+    const user = await clerkClient.users.getUser(clerkId);
+    const primaryEmail = user.emailAddresses.find(email => email.id === user.primaryEmailAddressId);
+    
+    console.log("Data in the update request is ", role, vendorType, isVerified);
+
     if (authUserId !== clerkId) {
       return NextResponse.json(
-        { error: "Forbidden: Can only update your own role" }, 
+        { error: "Forbidden: Can only update your own role" },
         { status: 403 }
       );
     }
 
-    // Validate role
     if (!Object.values(UserRole).includes(role)) {
       return NextResponse.json(
-        { error: "Invalid role" }, 
+        { error: "Invalid role" },
         { status: 400 }
       );
     }
 
-
-
-    // Prepare update data
     const updateData: any = {
       role,
       updatedAt: updatedAt || new Date().toISOString(),
     };
 
-    // Add vendor-specific fields if role is VENDOR
     if (role === UserRole.VENDOR) {
       updateData.vendorType = vendorType;
       updateData.isVerified = isVerified || false;
-      updateData.registrationStatus = registrationStatus || 'pending';
+      updateData.registrationStatus = registrationStatus || 'incomplete';
     } else {
-      // For non-vendor roles, set appropriate defaults
       updateData.isVerified = isVerified !== undefined ? isVerified : true;
       updateData.registrationStatus = registrationStatus || 'complete';
-      updateData.vendorType = null; // Clear vendor type for non-vendors
+      updateData.vendorType = null;
     }
 
-    const updatedUser=await User.findOneAndUpdate(
-        {clerkId},{$set:updateData},{
-            new:true,upsert:true
-        }
-    )
+    let updatedUser = await User.findOneAndUpdate(
+      { clerkId },
+      { $set: updateData },
+      { new: true }
+    );
 
-    // REPLACE THIS SECTION WITH YOUR ACTUAL DATABASE UPDATE LOGIC
-    console.log('Updating user in database:', {
+    if (!updatedUser) {
+      if (!primaryEmail?.emailAddress) {
+        return NextResponse.json(
+          { error: "User email not found" },
+          { status: 400 }
+        );
+      }
+
+      const newUserData = {
+        clerkId,
+        email: primaryEmail.emailAddress, 
+        firstName: user.firstName || '', 
+        lastName: user.lastName || '', 
+        ...updateData,
+        createdAt: new Date().toISOString()
+      };
+      
+      updatedUser = await User.create(newUserData);
+    }
+
+    console.log('Updated user in database:', {
       clerkId,
       updateData
     });
-
 
     return NextResponse.json({
       success: true,
       message: "User role updated successfully",
       user: updatedUser
     });
-
+    
   } catch (error) {
     console.error("Error updating user role:", error);
     
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
+      {
+        error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }
@@ -99,13 +121,14 @@ export async function GET(req: NextRequest) {
     
     if (!userId) {
       return NextResponse.json(
-        { error: "Unauthorized" }, 
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
+
     await dbConnect();
-    // Fetch user from database
-    const user = await User.findOne({ where: { clerkId: userId } });
+    // Fixed: Use findOne with clerkId instead of where clause
+    const user = await User.findOne({ clerkId: userId });
     return NextResponse.json({ user });
   } catch (error) {
     console.error("Error fetching user:", error);

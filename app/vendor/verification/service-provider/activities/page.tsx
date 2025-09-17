@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Palette, Upload, MapPin, Users, Shield, Clock, Star } from "lucide-react";
-
+import { Palette, Upload, MapPin, Users, Shield, Clock, Star, Loader2 } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import { FormEvent } from "react";
+import { initializeRazorpayPayment,PaymentConfigs,RazorpayResponse } from "@/utils/razorpay";
 interface FormData {
   businessName: string;
   ownerName: string;
@@ -163,37 +165,153 @@ export default function ActivityVerification() {
   const handleFileChange = (fieldName: keyof Files, file: File | FileList | null): void => {
     setFiles(prev => ({ ...prev, [fieldName]: file }));
   };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const processPayment = async (): Promise<RazorpayResponse> => {
+    const paymentOptions = {
+      ...PaymentConfigs.GUIDE_REGISTRATION,
+      prefill: {
+        name: formData.businessName,
+        email: formData.email,
+        contact: formData.phone,
+      },
+    };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    
-    const submitData = new FormData();
-    
-    Object.keys(formData).forEach((key) => {
-      const typedKey = key as keyof FormData;
-      if (Array.isArray(formData[typedKey])) {
-        submitData.append(key, JSON.stringify(formData[typedKey]));
-      } else {
-        submitData.append(key, String(formData[typedKey]));
-      }
-    });
-    
-    Object.keys(files).forEach((key) => {
-      const typedKey = key as keyof Files;
-      const fileValue = files[typedKey];
-      if (fileValue) {
-        if (fileValue instanceof FileList) {
-          Array.from(fileValue).forEach((file, index) => {
-            submitData.append(`${key}[${index}]`, file);
-          });
-        } else {
-          submitData.append(key, fileValue);
-        }
-      }
-    });
-    
-    console.log("Activity provider verification submitted:", formData, files);
+    return await initializeRazorpayPayment(paymentOptions);
   };
+  const {user}=useUser();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    if(!formData.agreeToTerms){
+      setSubmitMessage({type:'error',message:'Please agree to terms and conditions'})
+    }
+    if(!user){
+      setSubmitMessage({type:'error',message:'Please log in to submit application'})
+      return
+    }
+    setIsSubmitting(true);
+    setSubmitMessage(null);
+    try{
+      console.log("Initialising payment")
+      const paymentResponse=await processPayment()
+      if(!paymentResponse.razorpay_payment_id){
+        throw new Error('Payment not completed')
+      }
+      const submitData=new FormData();
+
+    
+    
+      Object.keys(formData).forEach((key) => {
+        const typedKey = key as keyof FormData;
+        if (Array.isArray(formData[typedKey])) {
+          submitData.append(key, JSON.stringify(formData[typedKey]));
+        } else {
+          submitData.append(key, String(formData[typedKey]));
+        }
+      });
+      
+      Object.keys(files).forEach((key) => {
+        const typedKey = key as keyof Files;
+        const fileValue = files[typedKey];
+        if (fileValue) {
+          if (fileValue instanceof FileList) {
+            Array.from(fileValue).forEach((file, index) => {
+              submitData.append(`${key}[${index}]`, file);
+            });
+          } else {
+            submitData.append(key, fileValue);
+          }
+        }
+      });
+    
+
+    submitData.append('razorpayPaymentId', paymentResponse.razorpay_payment_id);
+    if (paymentResponse.razorpay_order_id) {
+      submitData.append('razorpayOrderId', paymentResponse.razorpay_order_id);
+    }
+    if (paymentResponse.razorpay_signature) {
+      submitData.append('razorpaySignature', paymentResponse.razorpay_signature);
+    }
+    submitData.append('razorpayAmount', PaymentConfigs.GUIDE_REGISTRATION.amount.toString());
+    submitData.append('userId', user.id);
+    console.log('Submitting application')
+    const response=await fetch('/api/submit-activities-application',{
+      method:'POST',
+      body:submitData,
+    });
+    const result=await response.json();
+    if(!response.ok){
+      throw new Error(result.message || 'Submission failed')
+    }
+    console.log("Response in the frontend is ",response)
+    setSubmitMessage({
+      type:'success',
+      message:`Application submitted successfully`
+    });
+    setFormData({
+      businessName: "",
+      ownerName: "",
+      email: "",
+      phone: "",
+      alternatePhone: "",
+      address: "",
+      city: "",
+      activityTypes: [],
+      experienceCategory: "",
+      establishedYear: "",
+      groupSize: "",
+      duration: "",
+      ageRestriction: "",
+      difficultyLevel: "",
+      seasonality: "",
+      languages: [],
+      pricing: "",
+      inclusions: "",
+      exclusions: "",
+      safetyMeasures: "",
+      equipmentProvided: [],
+      certifications: "",
+      staffCount: "",
+      experience: "",
+      description: "",
+      cancellationPolicy: "",
+      weatherPolicy: "",
+      emergencyContact: "",
+      emergencyPhone: "",
+      insuranceProvider: "",
+      operatingDays: [],
+      operatingHours: "",
+      bookingAdvance: "",
+      customPackages: false,
+      privateGroups: false,
+      corporateEvents: false,
+      wheelchairAccessible: false,
+      agreeToTerms: false
+    });
+  
+    setFiles({
+      businessLicense: null,
+      safetyCredentials: null,
+      instructorCredentials: null,
+      equipmentPhotos: null,
+      activityPhotos: null,
+      insurance: null,
+      panCard: null,
+      testimonials: null
+    });
+    
+    console.log("Activity service verification submitted:", formData, files);
+  }
+  catch(error:any){
+    console.error('Submission error:', error);
+    setSubmitMessage({
+      type: 'error',
+      message: error || 'Failed to submit application. Please try again.'
+    });
+  }finally{
+    setIsSubmitting(false);
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -847,8 +965,19 @@ export default function ActivityVerification() {
                 </AlertDescription>
               </Alert>
 
-              <Button type="submit" className="w-full" size="lg">
-                Submit Activity Provider for Verification
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting || !formData.agreeToTerms}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment & Submitting...
+                  </>
+                ) : (
+                  'Pay ₹100 & Submit Application'
+                )}
               </Button>
             </form>
           </CardContent>

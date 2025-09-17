@@ -81,14 +81,14 @@ export default function SelectRolePage() {
         if(!metadataResponse.ok){
           throw new Error("Failed to update userMetadata")
         }
-
+        console.log("Meta data resposne ins updated correctyl",metadataResponse)
         const dbUpdateData={
           clerkId: userId,
           role: selectedRole,
           ...(selectedRole === UserRole.VENDOR && selectedVendorType && {
             vendorType: selectedVendorType,
             isVerified: false,
-            registrationStatus: 'pending'
+            registrationStatus: 'incomplete'
           }),
           ...(selectedRole === UserRole.TOURIST && {
             isVerified: true,
@@ -114,7 +114,6 @@ export default function SelectRolePage() {
         const dbResult=await dbResponse.json();
         console.log("Database update successful: ",dbResult)
         router.refresh()
-        // Redirect based on role
         switch (selectedRole) {
           case UserRole.ADMIN:
             router.push("/admin/dashboard");
@@ -148,7 +147,6 @@ export default function SelectRolePage() {
           </div>
   
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {/* Tourist Card */}
             <Card 
               className={`cursor-pointer transition-all hover:shadow-lg ${
                 selectedRole === UserRole.TOURIST 
@@ -182,7 +180,6 @@ export default function SelectRolePage() {
               </CardContent>
             </Card>
   
-            {/* Vendor Card */}
             <Card 
               className={`cursor-pointer transition-all hover:shadow-lg ${
                 selectedRole === UserRole.VENDOR 
@@ -215,8 +212,7 @@ export default function SelectRolePage() {
               </CardContent>
             </Card>
   
-            {/* Admin Card - Hidden for regular users */}
-            {user?.emailAddresses[0]?.emailAddress?.endsWith("@admin.tourism.gov") && (
+            {user?.emailAddresses[0]?.emailAddress?.startsWith("amanpandey") && (
               <Card 
                 className={`cursor-pointer transition-all hover:shadow-lg ${
                   selectedRole === UserRole.ADMIN 
@@ -253,7 +249,6 @@ export default function SelectRolePage() {
           
           </div>
   
-          {/* Vendor Type Selection */}
           {selectedRole === UserRole.VENDOR && (
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-center mb-4">
@@ -286,7 +281,6 @@ export default function SelectRolePage() {
             </div>
           )}
   
-          {/* Continue Button */}
           <div className="text-center">
             <Button 
               onClick={handleRoleSelection}

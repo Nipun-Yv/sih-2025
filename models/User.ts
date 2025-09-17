@@ -5,11 +5,20 @@ export interface IUser extends Document {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: 'TOURIST' | 'VENDOR' | 'ADMIN';
-  vendorType?: 'HOTEL' | 'RESTAURANT' | 'TRANSPORT' | 'TOUR_GUIDE';
-  registrationStatus: 'incomplete' | 'pending' | 'completed' | 'rejected';
+  fullName?:string;
+  role: 'tourist' | 'vendor' | 'admin';
+  vendorType?: 'guide' | 'accomodation' | 'food_restaurant' | 'transportation' | 'activity';
+  registrationStatus: 'incomplete' | 'pending' | 'approved' | 'rejected' | 'suspended'|'complete';
   isVerified: boolean;
-  providerId?: string;
+  providerId?: number; 
+  applicationId?: number; 
+  panHash?: string; 
+  razorpayPaymentId?: string; 
+  razorpayAmount?: number; 
+  documentsHash?: string; 
+  applicationDataHash?: string; 
+  verificationScore?: number; 
+  expiryDate?: Date; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +42,10 @@ const UserSchema: Schema = new Schema({
     type: String,
     required: false,
   },
+  fullName: {
+    type: String,
+    required: false,
+  },
   role: {
     type: String,
     enum: ['tourist', 'vendor', 'admin'],
@@ -41,12 +54,12 @@ const UserSchema: Schema = new Schema({
   },
   vendorType: {
     type: String,
-    enum: ['HOTEL', 'RESTAURANT', 'TRANSPORT', 'TOUR_GUIDE'],
+    enum: ['guide', 'accomodation', 'food_restaurant', 'transportation', 'activity'],
     required: false,
   },
   registrationStatus: {
     type: String,
-    enum: ['incomplete', 'pending', 'completed', 'rejected'],
+    enum: ['incomplete', 'pending', 'approved', 'rejected', 'suspended','complete'],
     default: 'incomplete',
   },
   isVerified: {
@@ -54,12 +67,50 @@ const UserSchema: Schema = new Schema({
     default: false,
   },
   providerId: {
+    type: Number,
+    required: false,
+  },
+  applicationId: {
+    type: Number,
+    required: false,
+  },
+  panHash: {
     type: String,
     required: false,
   },
+  razorpayPaymentId: {
+    type: String,
+    required: false,
+  },
+  razorpayAmount: {
+    type: Number,
+    required: false,
+  },
+  documentsHash: {
+    type: String,
+    required: false,
+  },
+  applicationDataHash: {
+    type: String,
+    required: false,
+  },
+  verificationScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    required: false,
+  },
+  expiryDate: {
+    type: Date,
+    required: false,
+  },
 }, {
-  timestamps: true, // This automatically adds createdAt and updatedAt
+  timestamps: true,
 });
 
-// Prevent model recompilation in development
+UserSchema.index({ panHash: 1 });
+UserSchema.index({ providerId: 1 });
+UserSchema.index({ applicationId: 1 });
+UserSchema.index({ registrationStatus: 1 });
+
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

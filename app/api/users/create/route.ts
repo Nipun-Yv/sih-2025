@@ -8,8 +8,7 @@ export async function POST(request: Request) {
     
     const userData = await request.json();
     const { clerkId, email, firstName, lastName, role, registrationStatus, isVerified } = userData;
-
-    // Check if user already exists
+    console.log("Getting values in frontend",clerkId,email,firstName,lastName,role,registrationStatus,isVerified)
     const existingUser = await User.findOne({ clerkId });
     if (existingUser) {
       return NextResponse.json({ 
@@ -19,13 +18,12 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create new user in MongoDB
     const newUser = await User.create({
       clerkId,
       email,
       firstName,
       lastName,
-      role: role || 'TOURIST',
+      role: role || 'tourist',
       registrationStatus: registrationStatus || 'incomplete',
       isVerified: isVerified || false,
     });
@@ -38,7 +36,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating user:', error);
     
-    // Handle duplicate key error
     if (error instanceof Error && error.message.includes('duplicate key')) {
       return NextResponse.json(
         { 
