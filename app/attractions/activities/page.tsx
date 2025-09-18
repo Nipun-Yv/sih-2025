@@ -154,7 +154,7 @@ export default function ActivitiesPage({ params }: { params: any }) {
       await axios.post(`${springApiBaseUrl}/activities`, {
         selectedActivities: activityIds,
         userId: "sample",
-        locationId: "delhi_india",
+        locationId: "jharkhand_india",
       });
       router.push(`/itinerary`);
     } catch (err: any) {
