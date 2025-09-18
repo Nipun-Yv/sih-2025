@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import Link from 'next/link'; // 1. Import the Link component
+import Link from 'next/link'; 
 
 export default function InfoPanel({ selectedLocation, onClose }) {
   if (!selectedLocation) return null;
@@ -20,7 +20,6 @@ export default function InfoPanel({ selectedLocation, onClose }) {
         </div>
         <p className="text-sm text-gray-500">{selectedLocation.description}</p>
         <div className="mt-3 flex gap-3">
-          {/* 2. Replace <a> with <Link> and use the `href` prop */}
           <Link href={arLink} className="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all font-semibold">
             AR
           </Link>
