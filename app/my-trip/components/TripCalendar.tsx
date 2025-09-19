@@ -10,7 +10,6 @@ import {
   Users,
 } from "lucide-react";
 import { CalendarActivity } from "@/types/Activity";
-import useStreaming from "../hooks/useStreaming";
 
 const localizer = dayjsLocalizer(dayjs);
 
@@ -21,9 +20,10 @@ const eventTypes = {
   accommodation: { icon: MapPin, label: "Stay" },
 };
 
-const TripCalendar = ({events,connectionStatus}:{events:any,connectionStatus:string}) => {
-
-  const [date, setDate] = useState<Date>(new Date());
+const TripCalendar = ({events}:{events:CalendarActivity[]}) => {
+  console.log(events)
+  const [date, setDate] = useState<Date>(events[0].start);
+  console.log(date)
   const [view, setView] = useState<View>("week");
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarActivity | null>(
@@ -31,25 +31,6 @@ const TripCalendar = ({events,connectionStatus}:{events:any,connectionStatus:str
   );
   const calendarContainerRef = useRef<HTMLDivElement>(null);
 
-  // Add a useEffect to scroll to the latest event when events change
-  useEffect(() => {
-    if (events.length > 0 && calendarContainerRef.current) {
-      // Example: scroll to the last event (assuming events are sorted by time)
-      const lastEvent = events[events.length - 1];
-      const eventElements =
-        calendarContainerRef.current.querySelectorAll(".rbc-event");
-      let targetElement = null;
-      for (const el of eventElements) {
-        if (el.textContent && el.textContent.includes(lastEvent.title)) {
-          targetElement = el;
-          break;
-        }
-      }
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-  }, [events]);
 
   const customEventPropGetter = (event: CalendarActivity) => ({
     style: {
@@ -66,8 +47,8 @@ const TripCalendar = ({events,connectionStatus}:{events:any,connectionStatus:str
     },
   });
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex-3/4">
-      <div className="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden backdrop-blur-sm"
+    <div className=" min-h-min w-full bg-gradient-to-br from-orange-50 to-white flex-3/4">
+      <div className="bg-white rounded-xl shadow-lg border border-orange-100 overflow-scroll backdrop-blur-sm"
         ref={calendarContainerRef}>
         <Calendar
           localizer={localizer}
@@ -77,56 +58,18 @@ const TripCalendar = ({events,connectionStatus}:{events:any,connectionStatus:str
           onNavigate={(newDate) => setDate(newDate)}
           onView={(newView) => setView(newView)}
           onSelectEvent={setSelectedEvent}
-          step={10}
-          timeslots={1}
+          step={14}
+          timeslots={2}
           view={view}
           date={date}
-          style={{ height: "700px" }}
+          style={{ height: "500px" }}
           eventPropGetter={customEventPropGetter}
           popup={true}
+          min={date}
         />
       </div>
-      {/* <button
-        onClick={startStreaming}
-        disabled={
-          connectionStatus === "connecting" || connectionStatus === "connected"
-        }
-        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
-      >
-        {connectionStatus === "connecting" && (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        )}
-        {connectionStatus === "connecting"
-          ? "Connecting..."
-          : "Generate Itinerary"}
-      </button>
-
-      <button
-        onClick={stopStreaming}
-        disabled={connectionStatus === "disconnected"}
-        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        Stop Stream
-      </button> */}
       <div className="flex items-center gap-2">
-        <div
-          className={`w-3 h-3 rounded-full transition-colors ${
-            connectionStatus === "connected"
-              ? "bg-green-500"
-              : connectionStatus === "connecting"
-              ? "bg-yellow-500 animate-pulse"
-              : connectionStatus === "error"
-              ? "bg-red-500"
-              : connectionStatus === "completed"
-              ? "bg-blue-500"
-              : "bg-gray-500"
-          }`}
-        ></div>
-        <span className="text-sm text-gray-600 capitalize">
-          {connectionStatus}
-        </span>
       </div>
-      {/* Modal */}
       {selectedEvent && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
