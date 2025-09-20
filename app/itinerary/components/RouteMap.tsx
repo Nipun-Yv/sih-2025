@@ -10,7 +10,7 @@ import { CalendarDays, Loader2Icon } from "lucide-react";
 
 const containerStyle: React.CSSProperties = {
   width: "100%",
-  height: "80%",
+  height: "100%",
 };
 
 type DecodedPath = {
@@ -42,7 +42,7 @@ export default function RouteMap() {
           lat: sum.lat / locations.length,
           lng: sum.lng / locations.length,
         }
-      : { lat: 28.597040011417835, lng: 77.23768806238938 };
+      : { lat: 23.3004, lng: 85.271 };
 
   useEffect(() => {
     async function markLocations() {
@@ -189,7 +189,7 @@ export default function RouteMap() {
                   </div>
                 </div>
       {isLoaded ? (
-        <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={12}>
+        <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={9}>
           {locations.map((position, idx) => (
             <Marker key={idx} position={position} />
           ))}
@@ -207,21 +207,41 @@ export default function RouteMap() {
           {hotelLocations.map((position, idx) => {
             const price = hotels[idx]?.price || 0;
 
-            const svg = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="20" viewBox="0 0 32 20">
-                <defs>
-                  <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-                    <feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-opacity="0.2" />
-                  </filter>
-                </defs>
-                <g filter="url(#shadow)">
-                  <rect x="2" y="0" width="18" height="9" rx="3" ry="3" fill="#ea3f0b"/>
-                  <text x="11" y="6" text-anchor="middle" font-family="Arial, sans-serif" font-size="4" fill="white">
-                    ₹${price}
-                  </text>
-                </g>
-              </svg>
-            `;
+const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="20" viewBox="0 0 32 20">
+  
+    <defs>
+    
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-opacity="0.2" />
+      </filter>
+      
+    </defs>
+
+    <!-- Background pill -->
+    <g>
+    
+      <rect x="2" y="0" width="22" height="9" rx="3" ry="3" fill="#ff823c" />
+      
+      <!-- Home icon (4×4) -->
+      <g transform="translate(4,2)" fill="white">
+        <!-- Roof -->
+        <path d="M0 2 L2 0 L4 2 Z" />
+        <!-- Base -->
+        <rect x="0.6" y="2" width="2.8" height="2" rx="0.3" />
+      </g>
+      
+      <!-- Price text -->
+      <text x="15" y="6" text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="4"
+            fill="white">
+        ₹${price}
+      </text>
+    </g>
+  </svg>
+`;
+
 
             return (
               <Marker

@@ -11,11 +11,9 @@ export default function ItineraryLayout({
 }>) {
   return (
     <HotelProvider>
-    <MapProvider>
     <StreamingContextProvider>
         {children}
     </StreamingContextProvider>
-    </MapProvider>
     </HotelProvider>
         
   );

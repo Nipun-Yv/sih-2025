@@ -21,16 +21,7 @@ const eventTypes = {
   accommodation: { icon: MapPin, label: "Stay" },
 };
 
-const TripCalendar = () => {
-  const {
-    // isComplete,
-    events,
-    // itineraryItems,
-    // error,
-    connectionStatus,
-    // startStreaming,
-    // stopStreaming,
-  } = useStreaming();
+const TripCalendar = ({events,connectionStatus}:{events:any,connectionStatus:string}) => {
 
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>("week");
