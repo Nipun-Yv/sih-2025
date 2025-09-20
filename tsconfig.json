@@ -31,6 +31,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "types/**/*"
-  ],
+, "components/map/constants.ts"  ],
   "exclude": ["node_modules"]
 }

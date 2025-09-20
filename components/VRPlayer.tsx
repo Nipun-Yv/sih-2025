@@ -10,7 +10,7 @@ interface Asset {
   name: string;
   link: string;
 }
-
+   
 // --- React Component ---
 export default function VRPlayer({ slug }) {
   const mountRef = useRef(null);
