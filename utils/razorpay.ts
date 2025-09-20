@@ -1,5 +1,3 @@
-// utils/razorpay.ts
-
 export interface RazorpayOptions {
     amount: number; // Amount in paisa (₹1 = 100 paisa)
     currency?: string;

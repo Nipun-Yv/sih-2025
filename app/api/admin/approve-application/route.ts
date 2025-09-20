@@ -24,26 +24,45 @@ export async function POST(req: Request) {
         message: result.error || 'Failed to approve application',
       }, { status: 500 });
     }
-
-    await Application.updateOne(
-      { applicationId },
-      { 
-        $set: { 
-          status: 'approved',
-          providerId: result.providerId,
-          approvedAt: new Date(),
-          verifierNotes,
-          verificationScore,
+    try {
+      const responseFromCreateApp = await Application.findOneAndUpdate(
+        { applicationId },
+        {
+          $set: {
+            status: 'approved',
+            providerId: result.providerId,
+            approvedAt: new Date(),
+            verifierNotes,
+            verificationScore,
+          }
         }
+      );
+      
+      console.log("Database update response:", responseFromCreateApp);
+      console.log("Matched count:", responseFromCreateApp.matchedCount);
+      console.log("Modified count:", responseFromCreateApp.modifiedCount);
+      
+      if (responseFromCreateApp.matchedCount === 0) {
+        console.log("No application found with applicationId:", applicationId);
+        return NextResponse.json({
+          success: false,
+          message: 'Application not found',
+        }, { status: 404 });
       }
-    );
+      
+    } catch (dbError) {
+      console.error("Database update error:", dbError);
+      throw dbError;
+    }
 
     return NextResponse.json({
       success: true,
       providerId: result.providerId,
       message: 'Application approved successfully',
     });
+    
   } catch (err: any) {
+    console.error("Full error details:", err);
     return NextResponse.json({
       success: false,
       message: 'Failed to approve application',

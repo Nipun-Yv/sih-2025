@@ -39,6 +39,7 @@ const getNavigationConfig = (userRole: UserRole, vendorType?: VendorType): Navig
       { name: "Browse Services", href: "/tourist/browse" },
       { name: "Verify Provider", href: "/tourist/verify" },
       { name: "My Bookings", href: "/tourist/bookings" },
+      {name:"Activities",href:"/attractions"}
     ],
     [UserRole.ADMIN]: [
       { name: "Dashboard", href: "/admin/dashboard" },
@@ -52,6 +53,7 @@ const getNavigationConfig = (userRole: UserRole, vendorType?: VendorType): Navig
 
   if (userRole === UserRole.VENDOR) {
     const baseVendorRoutes: NavigationItem[] = [
+      {name:"Verification",href:"/certificates/verification"},
       { name: "Dashboard", href: "/vendor/dashboard" },
       { name: "My Profile", href: "/vendor/profile" },
       { name: "Certificate", href: "/vendor/certificate" },

@@ -1567,7 +1567,17 @@ export const mapVendorTypeToServiceType = (vendorType: string): ServiceType => {
     default: throw new Error(`Unknown vendor type: ${vendorType}`);
   }
 };
-
+export const mapServiceTypeToVendorType = (serviceType: Number): ServiceType => {
+  
+  switch (serviceType) {
+    case 0:return ServiceType.GUIDE;
+    case 1: return ServiceType.ACCOMMODATION;
+    case 2: return ServiceType.FOOD_RESTAURANT;
+    case 3: return ServiceType.TRANSPORTATION;
+    case 4: return ServiceType.ACTIVITY;
+    default: throw new Error(`Unknown vendor type: ${serviceType}`);
+  }
+};
 export const hashPAN=(panNumber:string):string=>{
     const hash=crypto.createHash('sha512').update(panNumber).digest('hex');
     return hash;
@@ -1588,6 +1598,7 @@ export class TourismRegistryContract{
         this.signer=new ethers.Wallet(privateKey,this.provider);
         this.contract=new ethers.Contract(CONTRACT_ADDRESS,TOURISM_REGISTRY_ABI,this.signer);
     }
+    
     async submitApplication(
       serviceType: ServiceType,
       panHash: string,
@@ -1660,42 +1671,136 @@ export class TourismRegistryContract{
           };
       }
   }
-    async approveApplication(applicationId:number,verifierNotes:string,verificationScore:number):
-    Promise<{success:boolean,providerId?:number;error?:string}>{
-        try{
-            const tx=await this.contract.approveApplication(applicationId,verifierNotes,verificationScore)
-            const receipt=await tx.wait();
-            const event=receipt.events?.find((e:any)=>e.event==='ProviderApproved');
-            const providerId=event?.args?.[0]?.toNumber();
-            return {success:true,providerId};
-        }catch(error:any){
-            console.error("Contract approval error: ",error);
-            return {success:false,error:error.message}
-        }
-    }
+
+  async approveApplication(applicationId:number,verifierNotes:string,verificationScore:number):
+  Promise<{success:boolean,providerId?:number;error?:string}>{
+      try{
+          const tx=await this.contract.approveApplication(applicationId,verifierNotes,verificationScore)
+          const receipt=await tx.wait();
+          console.log("Receipt in the contract is ", receipt);
+
+          let providerId: number | undefined;
+
+          if (receipt?.logs && receipt.logs.length > 0) {
+              for (const log of receipt.logs) {
+                  try {
+                      const parsedLog = this.contract.interface.parseLog({
+                          topics: [...log.topics],
+                          data: log.data
+                      });
+
+                      console.log("Parsed log:", parsedLog);
+
+                      if (parsedLog && parsedLog.name === 'ProviderApproved') {
+                          providerId = Number(parsedLog.args[0]);
+                          console.log("Found ProviderApproved event with ID:", providerId);
+                          break;
+                      }
+                  } catch (parseError: any) {
+                      console.log("Skipping unparseable log:", parseError.message);
+                      continue;
+                  }
+              }
+          }
+
+          if (providerId) {
+              return {success:true,providerId};
+          } else {
+              console.log("Could not parse ProviderApproved event from logs");
+              return {success:true}; 
+          }
+      }catch(error:any){
+          console.error("Contract approval error: ",error);
+          return {success:false,error:error.message}
+      }
+  }
+
     async rejectApplication(applicationId:number,reason:string):Promise<{success:boolean;error?:string}>{
       try{
         const tx=await this.contract.rejectApplication(applicationId,reason)
-        await tx.wait()
+        const receipt = await tx.wait();
+        console.log("Receipt in the contract is ", receipt);
+
+        let rejectionConfirmed = false;
+
+        if (receipt?.logs && receipt.logs.length > 0) {
+            for (const log of receipt.logs) {
+                try {
+                    const parsedLog = this.contract.interface.parseLog({
+                        topics: [...log.topics],
+                        data: log.data
+                    });
+
+                    console.log("Parsed log:", parsedLog);
+
+                    if (parsedLog && parsedLog.name === 'ApplicationRejected') {
+                        rejectionConfirmed = true;
+                        console.log("Found ApplicationRejected event for ID:", Number(parsedLog.args[0]));
+                        break;
+                    }
+                } catch (parseError: any) {
+                    console.log("Skipping unparseable log:", parseError.message);
+                    continue;
+                }
+            }
+        }
+
         return{success:true}
       }catch(error:any){
         console.error("Contract rejection error: ",error)
         return {success:false,error:error.message};
       }
     }
-    async generateCertificate(providerId:number):Promise<{success:boolean;certificateHash?:string;error?:string}>{
-      try{
-        const tx=await this.contract.generateCertificate(providerId)
-        const receipt=await tx.wait()
-        const event = receipt.events?.find((e: any) => e.event === 'CertificateGenerated');
-        const certificateHash = event?.args?.[1];
-        console.log("Generte certificate hash is ",certificateHash)
-        return { success: true, certificateHash }
-      }catch(error:any){
-        console.error("Contract certificate generation error: ",error);
-        return {success:false,error:error.message}
+
+    async generateCertificate(providerId: number): Promise<{
+      success: boolean;
+      certificateHash?: string;
+      transactionHash?: string;
+      error?: string;
+    }> {
+      try {
+        const tx = await this.contract.generateCertificate(providerId);
+        const receipt = await tx.wait();
+        console.log("Receipt in the contract is ", receipt);
+    
+        let certificateHash: string | undefined;
+    
+        if (receipt?.logs && receipt.logs.length > 0) {
+          for (const log of receipt.logs) {
+            try {
+              const parsedLog = this.contract.interface.parseLog({
+                topics: [...log.topics],
+                data: log.data
+              });
+    
+              console.log("Parsed log:", parsedLog);
+    
+              if (parsedLog && parsedLog.name === 'CertificateGenerated') {
+                certificateHash = parsedLog.args[1];
+                console.log("Found CertificateGenerated event with hash:", certificateHash);
+                break;
+              }
+            } catch (parseError: any) {
+              console.log("Skipping unparseable log:", parseError.message);
+              continue;
+            }
+          }
+        }
+    
+        console.log("Generate certificate hash is ", certificateHash);
+        console.log("Transaction hash is ", receipt.hash);
+    
+        return { 
+          success: true, 
+          certificateHash,
+          transactionHash: receipt.hash  
+        };
+      } catch (error: any) {
+        console.error("Contract certificate generation error: ", error);
+        return { success: false, error: error.message };
       }
     }
+
     async getStatistics(){
       try{
           const stats=await this.contract.getStatistics();
@@ -1712,15 +1817,16 @@ export class TourismRegistryContract{
           console.error("Error getting statistics: ",error);
           return null;
       }
-  }
+    }
+
     async getHeapStatistics(){
         try{
             const stats=await this.contract.getStatistics();
             return{
-                totalApplications:stats[0].toNumber(),
-                totalApprovals:stats[1].toNumber(),
-                totalRejectins:stats[2].toNumber(),
-                totalProviders:stats[3].toNumber(),
+                totalApplications:Number(stats[0]),
+                totalApprovals:Number(stats[1]),
+                totalRejections:Number(stats[2]),
+                totalProviders:Number(stats[3]),
                 contractBalance:ethers.formatEther(stats[4]),
                 totalFunding:ethers.formatEther(stats[5])
             };
@@ -1729,23 +1835,25 @@ export class TourismRegistryContract{
             return null;
         }
     }
+
     async verifyCertificate(panHash:string){
         try{
             const result=await this.contract.verifyCertificateByPAN(panHash);
             return{
                 isValid:result[0],
-                providerId:result[1].toNumber(),
+                providerId:Number(result[1]),
                 serviceType:result[2],
                 status:result[3],
-                expiryDate:new Date(result[4].toNumber()*1000),
+                expiryDate:new Date(Number(result[4])*1000),
                 fullName:result[5],
                 city:result[6]
             };
         }catch(error){
-            console.error('Error verifiying certificate: ',error);
+            console.error('Error verifying certificate: ',error);
             return null;
         }
     }
+
     async getProviderDetails(providerId: number) {
       try {
           const provider = await this.contract.serviceProviders(providerId);
@@ -1761,25 +1869,25 @@ export class TourismRegistryContract{
           console.error('Error getting provider details: ', error);
           return null;
       }
-  }
+    }
 
-  async getPendingApplications(): Promise<number[]> {
-      try {
-          const applicationIds = await this.contract.getPendingApplications();
-          console.log("Applicatin ids in the frotnedn is ",applicationIds)
-          return applicationIds.map((id: any) => Number(id));
-      } catch (error) {
-          console.error('Error getting pending applications: ', error);
-          return [];
-      }
-  }
+    async getPendingApplications(): Promise<number[]> {
+        try {
+            const applicationIds = await this.contract.getPendingApplications();
+            console.log("Application ids in the frontend is ",applicationIds)
+            return applicationIds.map((id: any) => Number(id));
+        } catch (error) {
+            console.error('Error getting pending applications: ', error);
+            return [];
+        }
+    }
 
-  async getApplication(applicationId: number) {
-      try {
-          return await this.contract.applications(applicationId);
-      } catch (error) {
-          console.error('Error getting application: ', error);
-          return null;
-      }
-  }
+    async getApplication(applicationId: number) {
+        try {
+            return await this.contract.applications(applicationId);
+        } catch (error) {
+            console.error('Error getting application: ', error);
+            return null;
+        }
+    }
 }

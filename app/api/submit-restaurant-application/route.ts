@@ -57,10 +57,12 @@ export async function POST(request: NextRequest) {
     
     console.log("Restaurant application data is:", applicationData);
 
-    const razorpayPaymentId = getFormValue('razorpayPaymentId');
-    const razorpayOrderId = getFormValue('razorpayOrderId');
-    const razorpaySignature = getFormValue('razorpaySignature');
-    const razorpayAmount = parseInt(getFormValue('razorpayAmount') || '0');
+        const paymentData = {
+          razorpayPaymentId: getFormValue('razorpayPaymentId'),
+          razorpayOrderId: getFormValue('razorpayOrderId'),
+          razorpaySignature: getFormValue('razorpaySignature'),
+          amount: parseInt(getFormValue('razorpayAmount') || '0'),
+        };
 
     const requiredFields = {
       businessName: applicationData.businessName,
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!razorpayPaymentId || razorpayAmount < 10000) {
+    if (!paymentData.razorpayPaymentId || paymentData.amount < 10000) {
       return Response.json({ message: 'Invalid payment information' }, { status: 400 });
     }
 
@@ -120,24 +122,46 @@ export async function POST(request: NextRequest) {
     });
 
     const submissionService = new FormSubmissionService();
-    console.log("Restaurant submission data is ", userId, applicationData, fileData, razorpayPaymentId, razorpayAmount);
+    console.log("Restaurant submission data is ", userId, applicationData, fileData, paymentData.razorpayPaymentId,paymentData.amount);
     
     const result = await submissionService.submitForm(
       userId,
       applicationData,
       fileData,
-      razorpayPaymentId,
-      razorpayAmount,
+      paymentData
     );
     
     console.log("Restaurant result in the frontend is ", result);
     
     if (result.success) {
-      return Response.json({
+      const response: any = {
         success: true,
         applicationId: result.applicationId,
         message: result.message,
-      });
+      };
+
+      if (result.vendorId) {
+        response.vendorId = result.vendorId;
+      }
+      if (result.blockchainTxHash) {
+        response.blockchainTxHash = result.blockchainTxHash;
+      }
+      if (result.explorerUrl) {
+        response.explorerUrl = result.explorerUrl;
+      }
+      if (result.registrationFee) {
+        response.registrationFee = result.registrationFee;
+      }
+      if (result.documentHash) {
+        response.documentHash = result.documentHash;
+      }
+
+      if (result.legacyApplicationId) {
+        response.legacyApplicationId = result.legacyApplicationId;
+      }
+      response.legacyContractSuccess = result.legacyContractSuccess || false;
+      console.log("Response from the api is ",response);
+      return Response.json(response);
     } else {
       return Response.json({
         success: false,

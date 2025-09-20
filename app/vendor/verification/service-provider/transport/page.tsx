@@ -12,7 +12,6 @@ import { Car, Upload, MapPin, Shield, Clock, Phone, Loader2 } from "lucide-react
 import { initializeRazorpayPayment, PaymentConfigs, RazorpayResponse } from "@/utils/razorpay";
 import { useUser } from "@clerk/nextjs";
 
-// Type definitions
 interface FormData {
   businessName: string;
   ownerName: string;

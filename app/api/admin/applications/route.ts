@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import { TourismRegistryContract } from '@/utils/contract-utils';
 import Application from '@/models/Application'; 
-
+import User from '@/models/User';
 export async function GET() {
   try {
     await dbConnect();

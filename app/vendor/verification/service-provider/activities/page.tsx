@@ -41,7 +41,7 @@ interface FormData {
   cancellationPolicy: string;
   weatherPolicy: string;
   emergencyContact: string;
-  emergencyPhone: string;
+  gstNumber: string;
   insuranceProvider: string;
   operatingDays: string[];
   operatingHours: string;
@@ -94,7 +94,7 @@ export default function ActivityVerification() {
     cancellationPolicy: "",
     weatherPolicy: "",
     emergencyContact: "",
-    emergencyPhone: "",
+    gstNumber: "",
     insuranceProvider: "",
     operatingDays: [],
     operatingHours: "",
@@ -235,7 +235,7 @@ export default function ActivityVerification() {
     submitData.append('razorpayAmount', PaymentConfigs.GUIDE_REGISTRATION.amount.toString());
     submitData.append('userId', user.id);
     console.log('Submitting application')
-    const response=await fetch('/api/submit-activities-application',{
+    const response=await fetch('/api/submit-activites-application',{
       method:'POST',
       body:submitData,
     });
@@ -277,7 +277,7 @@ export default function ActivityVerification() {
       cancellationPolicy: "",
       weatherPolicy: "",
       emergencyContact: "",
-      emergencyPhone: "",
+      gstNumber: "",
       insuranceProvider: "",
       operatingDays: [],
       operatingHours: "",
@@ -822,13 +822,13 @@ export default function ActivityVerification() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="emergencyPhone">Emergency Contact Phone *</Label>
+                    <Label htmlFor="gstNumber">GST Number *</Label>
                     <Input
-                      id="emergencyPhone"
+                      id="gstNumber"
                       type="tel"
-                      value={formData.emergencyPhone}
-                      onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
-                      placeholder="+91 9876543210"
+                      value={formData.gstNumber}
+                      onChange={(e) => handleInputChange("gstNumber", e.target.value)}
+                      placeholder="adsfder123vdfa"
                       required
                     />
                   </div>

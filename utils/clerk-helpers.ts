@@ -4,7 +4,6 @@ export async function updateUserMetadata(
     metadata: Partial<UserMetadata>
   ) {
     try {
-      // This would be called from your API routes
       const response = await fetch('/api/users/update-metadata', {
         method: 'POST',
         headers: {
