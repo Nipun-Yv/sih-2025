@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import '@google/model-viewer';
 
-// --- Interfaces and Types ---
 interface ModelViewerElement extends HTMLElement {
   loaded: boolean;
   getCameraOrbit(): { theta: number; phi: number; radius: number };
@@ -25,7 +24,6 @@ interface Asset {
   link: string;
 }
 
-
 function getModelKeysFromName(locationName: string): { mainKey: string; textKey: string } | null {
   if (!locationName || typeof locationName !== 'string') {
     return null;
@@ -37,7 +35,6 @@ function getModelKeysFromName(locationName: string): { mainKey: string; textKey:
   };
 }
 
-// --- React Component ---
 export default function ARPage({ params }: { params: { location: string } }) {
   const locationName = decodeURIComponent(params.location).replace(/-/g, ' ');
 
@@ -51,12 +48,10 @@ export default function ARPage({ params }: { params: { location: string } }) {
 
   const horizontalOffset = 0.1;
 
-  // Effect to fetch data and set model URLs
   useEffect(() => {
     const fetchAndSetModels = async () => {
       setLoading(true);
 
-      // 1. Derive the database keys from the location name
       const modelKeys = getModelKeysFromName(locationName);
       if (!modelKeys) {
         setError(`Error: Invalid location name provided.`);
@@ -67,11 +62,9 @@ export default function ARPage({ params }: { params: { location: string } }) {
       try {
         const response = await fetch('/api/links');
         const result = await response.json();
-        console.log(result)
         if (!result.success) throw new Error('Failed to fetch assets from API.');
         
         const allAssets: Asset[] = result.data;
-        console.log(allAssets)
         const mainModelAsset = allAssets.find(asset => asset.name === modelKeys.mainKey);
         const textModelAsset = allAssets.find(asset => asset.name === modelKeys.textKey);
 
@@ -92,11 +85,9 @@ export default function ARPage({ params }: { params: { location: string } }) {
     };
 
     fetchAndSetModels();
-  }, [locationName]); // Re-run if the location name from the URL changes
+  }, [locationName]);
 
-  // Effect to sync the two model-viewer cameras
   useEffect(() => {
-    // This entire effect remains the same as before
     const mainModel = mainModelRef.current;
     const textModel = textModelRef.current;
 
@@ -118,7 +109,7 @@ export default function ARPage({ params }: { params: { location: string } }) {
           textModel.cameraTarget = `${textTargetX}m ${mainTarget.y}m ${mainTarget.z}m`;
         }
       } catch (e) {
-        console.warn('Camera sync failed on a frame:', e);
+        
       }
       animationFrame = requestAnimationFrame(syncCameras);
     };
@@ -141,28 +132,30 @@ export default function ARPage({ params }: { params: { location: string } }) {
       textModel?.removeEventListener('load', handleLoad);
       mainModel?.removeEventListener('click', handleClick);
     };
-  }, [horizontalOffset, modelUrls]); // Re-run if modelUrls changes
+  }, [horizontalOffset, modelUrls]);
 
-  // --- Render Logic ---
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-        <p>Loading AR Experience for {locationName}...</p>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-orange-950 to-background text-foreground">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Loading AR Experience for {locationName}...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-red-400 p-4 text-center">
-        <h2 className="text-xl font-bold mb-2">Could not load AR model</h2>
-        <p>{error}</p>
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-orange-950 to-background text-destructive p-4 text-center">
+        <h2 className="text-xl font-bold mb-2 text-orange-400">Could not load AR model</h2>
+        <p className="text-muted-foreground">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-screen h-screen bg-black">
+    <div className="relative w-screen h-screen bg-gradient-to-br from-orange-950/20 to-background">
       {modelUrls && (
         <>
           <model-viewer
@@ -189,7 +182,7 @@ export default function ARPage({ params }: { params: { location: string } }) {
         </>
       )}
 
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white text-xs bg-black/60 px-3 py-2 rounded-lg pointer-events-none">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white text-sm bg-orange-500/90 backdrop-blur-sm px-4 py-2 rounded-full pointer-events-none font-medium shadow-lg">
         Click model to toggle text
       </div>
     </div>

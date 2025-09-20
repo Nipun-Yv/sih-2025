@@ -4,43 +4,40 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { Play, Pause, Volume2, VolumeX, Expand, Shrink, Glasses } from 'lucide-react';
 
-// --- Interfaces and Types ---
 interface Asset {
   _id: string;
   name: string;
   link: string;
 }
-   
-// --- React Component ---
-export default function VRPlayer({ slug }) {
-  const mountRef = useRef(null);
-  const playerRef = useRef(null);
-  const videoRef = useRef(null);
 
-  // Refs for Three.js objects
+interface VRPlayerProps {
+  slug: string;
+}
+   
+export default function VRPlayer({ slug }: VRPlayerProps) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const sceneRef = useRef<THREE.Scene>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
 
-  // Refs for user interaction
   const isDraggingRef = useRef(false);
   const previousMousePosRef = useRef({ x: 0, y: 0 });
   const lonRef = useRef(0);
   const latRef = useRef(0);
 
-  // State for fetching video URL
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for player UI
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [time, setTime] = useState({ current: 0, duration: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isVRSupported, setIsVRSupported] = useState(false);
 
-  // Effect to fetch video URL from the database
   useEffect(() => {
     const fetchVideoUrl = async () => {
       setIsLoading(true);
@@ -51,17 +48,14 @@ export default function VRPlayer({ slug }) {
         if (!result.success) throw new Error("API fetch failed");
 
         const allAssets: Asset[] = result.data;
-        // Filter for VR videos only (names not ending in M or T)
         const vrVideos = allAssets.filter(
           asset => !asset.name.endsWith('M') && !asset.name.endsWith('T')
         );
 
-        // Derive the search key from the slug
         const searchKey = slug.split('-')[0].toLowerCase();
         
         let targetVideo = vrVideos.find(video => video.name === searchKey);
 
-        // If no specific video is found, find the default "netarhat" video
         if (!targetVideo) {
           targetVideo = vrVideos.find(video => video.name === 'netarhat');
         }
@@ -80,7 +74,6 @@ export default function VRPlayer({ slug }) {
     fetchVideoUrl();
   }, [slug]);
 
-  // Effect to initialize Three.js scene
   useEffect(() => {
     if (!videoUrl || !mountRef.current) return;
 
@@ -186,7 +179,7 @@ export default function VRPlayer({ slug }) {
   const handlePlayPause = useCallback(() => {
     if (videoRef.current?.src) {
         if (videoRef.current.paused) {
-            videoRef.current.play().catch(err => console.error("Video play failed:", err));
+            videoRef.current.play().catch(() => {});
             setIsPlaying(true);
         } else {
             videoRef.current.pause();
@@ -202,7 +195,7 @@ export default function VRPlayer({ slug }) {
     }
   }, []);
 
-  const handleSeek = useCallback((e) => {
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (videoRef.current) {
         const progressContainer = e.currentTarget;
         const rect = progressContainer.getBoundingClientRect();
@@ -213,8 +206,8 @@ export default function VRPlayer({ slug }) {
 
   const handleFullscreen = useCallback(() => {
     const elem = playerRef.current;
-    if (!document.fullscreenElement) {
-        elem.requestFullscreen().catch(err => console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`));
+    if (!document.fullscreenElement && elem) {
+        elem.requestFullscreen().catch(() => {});
     } else {
         document.exitFullscreen();
     }
@@ -223,24 +216,24 @@ export default function VRPlayer({ slug }) {
   const handleEnterVR = useCallback(async () => {
     if (isVRSupported && rendererRef.current) {
       try {
-        const session = await navigator.xr.requestSession('immersive-vr');
+        const session = await (navigator as any).xr.requestSession('immersive-vr');
         await rendererRef.current.xr.setSession(session);
         if (videoRef.current?.paused) {
           handlePlayPause();
         }
       } catch (err) {
-        console.error("Failed to start VR session:", err);
+        
       }
     }
   }, [isVRSupported, handlePlayPause]);
 
-  const handleDragStart = (clientX, clientY) => {
+  const handleDragStart = (clientX: number, clientY: number) => {
     if (rendererRef.current?.xr.isPresenting) return;
     isDraggingRef.current = true;
     previousMousePosRef.current = { x: clientX, y: clientY };
   };
 
-  const handleDragMove = (clientX, clientY) => {
+  const handleDragMove = (clientX: number, clientY: number) => {
     if (!isDraggingRef.current || rendererRef.current?.xr.isPresenting) return;
     const deltaX = clientX - previousMousePosRef.current.x;
     const deltaY = clientY - previousMousePosRef.current.y;
@@ -253,7 +246,7 @@ export default function VRPlayer({ slug }) {
     isDraggingRef.current = false;
   };
   
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds === 0) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -262,14 +255,23 @@ export default function VRPlayer({ slug }) {
   const progressPercentage = time.duration > 0 ? (time.current / time.duration) * 100 : 0;
 
   if (isLoading) {
-    return <div className="w-full h-screen bg-black flex items-center justify-center text-white">Loading VR Environment...</div>;
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-orange-950 to-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground text-lg font-medium">Loading VR Environment...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-red-500 p-4 text-center">
-        <h2 className="text-xl font-bold mb-2">Failed to Load Video</h2>
-        <p>{error}</p>
-    </div>;
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-orange-950 to-background flex flex-col items-center justify-center text-center p-4">
+        <h2 className="text-xl font-bold mb-2 text-orange-400">Failed to Load Video</h2>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
   }
 
   return (
@@ -287,14 +289,23 @@ export default function VRPlayer({ slug }) {
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
       
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-2xl">
-        <div className="bg-black/60 backdrop-blur-md rounded-full p-2 flex items-center gap-4 text-white">
-            <button onClick={handlePlayPause} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+        <div className="bg-black/60 backdrop-blur-md rounded-full p-2 flex items-center gap-4 text-white border border-orange-500/50">
+            <button 
+              onClick={handlePlayPause} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
             </button>
             
             <div className="flex-grow flex items-center gap-2">
-                <div onClick={handleSeek} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer group">
-                    <div className="h-full bg-red-500 rounded-full relative" style={{ width: `${progressPercentage}%` }}>
+                <div 
+                  onClick={handleSeek} 
+                  className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer group"
+                >
+                    <div 
+                      className="h-full bg-red-500 rounded-full relative" 
+                      style={{ width: `${progressPercentage}%` }}
+                    >
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </div>
@@ -303,7 +314,10 @@ export default function VRPlayer({ slug }) {
                 </span>
             </div>
 
-            <button onClick={handleMuteToggle} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+            <button 
+              onClick={handleMuteToggle} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
               {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
             </button>
 
@@ -320,7 +334,10 @@ export default function VRPlayer({ slug }) {
               <Glasses size={24} />
             </button>
 
-            <button onClick={handleFullscreen} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+            <button 
+              onClick={handleFullscreen} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
               {isFullscreen ? <Shrink size={24} /> : <Expand size={24} />}
             </button>
         </div>

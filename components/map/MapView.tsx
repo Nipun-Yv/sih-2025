@@ -11,14 +11,13 @@ import InfoPanel from './InfoPanel';
 import TourismCarousel from './TourismCarousel';
 import FitBoundsToMarkers from './FitBoundsToMarkers';
 
-// Interface definitions remain the same...
 interface Location {
   id: string;
   name: string;
   lat: number;
   lng: number;
   image: string;
-  description: string; // Added description to match InfoPanel needs
+  description: string; 
 }
 
 interface RouteInfo {
@@ -37,7 +36,6 @@ export default function MapView() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedLayers, setSelectedLayers] = useState<string[]>(['markers']);
   const [searchTerm, setSearchTerm] = useState('');
-  // REMOVED: selectedLocation state is no longer needed
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
@@ -72,7 +70,6 @@ export default function MapView() {
 
     if (found) {
       map.flyTo([found.lat, found.lng], 12);
-      // Logic to open popup programmatically can be added here if needed
       if (userLocation) {
         await fetchRoute(userLocation, found);
       }
@@ -89,9 +86,7 @@ export default function MapView() {
         map?.flyTo([location.lat, location.lng], 12);
     }
   };
-  
-  // Other handlers like handleToggleFullscreen, handleLocate, handleCycleTile remain the same...
-  const handleToggleFullscreen = async () => {
+const handleToggleFullscreen = async () => {
     const container = containerRef.current;
     if (!container) return;
 
