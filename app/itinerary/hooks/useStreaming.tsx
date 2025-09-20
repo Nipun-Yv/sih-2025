@@ -145,6 +145,7 @@ const useStreaming = () => {
       setEvents(
         itineraryItems.map((item) => {
           return {
+            activity_id:item.activity_id,
             title: item.activity_name,
             start: formatDate(item.start_time),
             end: formatDate(item.end_time),

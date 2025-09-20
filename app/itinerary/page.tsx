@@ -4,7 +4,7 @@ import TripCalendar from "./components/TripCalendar";
 import { useEffect, useState } from "react";
 import { Activity } from "@/types/Activity";
 import axios from "axios";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import {
   CalendarDays,
 } from "lucide-react";
@@ -16,12 +16,21 @@ import { useAutoScroll } from "./hooks/useAutoScroll";
 import ItineraryLoadingBar from "./components/ItineraryLoadingBar";
 import ActivityNameList from "./components/ActivityNameList";
 import { useSearchParams } from "next/navigation";
-import { MapContext } from "@react-google-maps/api";
-import { MapProvider } from "../contexts/MapContext";
+import { Button } from "@/components/ui/button";
+import useStreaming from "./hooks/useStreaming";
 const ItineraryPage = () => {
   const searchParams = useSearchParams();
+  const router=useRouter()
   const date = searchParams.get("date"); 
-
+  const {
+    // isComplete,
+    events,
+    // itineraryItems,
+    // error,
+    connectionStatus,
+    // startStreaming,
+    // stopStreaming,
+  } = useStreaming();
   const [selectedActivities, setSelectedActivities] = useState<Activity[]>([]);
   const { hotels } = useHotelContext();
   const carouselRef = useAutoScroll(hotels);
@@ -60,6 +69,19 @@ const ItineraryPage = () => {
     getActivities();
   }, []);
 
+  const storeItinerary=async()=>{
+    try{
+      console.log("Why")
+      await axios.post(`${process.env.NEXT_PUBLIC_NANO_NODE_API_URL}/explore/finalize-itinerary/sample`,{
+        activities:events
+      })
+      console.log("What")
+      router.push("/my-trip")
+    }
+    catch(err){
+      console.log(err)
+    }
+  }
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
@@ -93,7 +115,11 @@ const ItineraryPage = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3"></div>
+                  <div className="flex items-center space-x-3">
+                    <button className=" bg-amber-500 p-3 px-4 shadow-lg  font-light text-white rounded-md" disabled={! (connectionStatus==="completed") } onClick={()=>storeItinerary()}>
+                      Finalise Trip
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -106,10 +132,9 @@ const ItineraryPage = () => {
                 />
               </div>
               <div className="flex w-full gap-2">
-                <TripCalendar />
+                <TripCalendar events={events} connectionStatus={connectionStatus} />
                 <RouteMap />
               </div>
-
               <div ref={carouselRef}>
                 <HotelCarousel hotels={hotels} />
               </div>

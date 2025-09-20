@@ -1,12 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { GoogleMap, Marker, Polyline } from "@react-google-maps/api";
-import { Activity } from "@/types/Activity";
+import { Activity, CalendarActivity, ItineraryItem } from "@/types/Activity";
 import axios from "axios";
-import { useStreamingContext } from "../../contexts/StreamingContext";
 import { useMap } from "../../contexts/MapContext"; 
 import { useHotelContext } from "../../contexts/HotelContext";
 import { CalendarDays, Loader2Icon } from "lucide-react";
+import { Hotel } from "@/types/Hotel";
+import { FaHome } from "react-icons/fa";
 
 const containerStyle: React.CSSProperties = {
   width: "100%",
@@ -18,14 +19,15 @@ type DecodedPath = {
   lng: number;
 };
 
-export default function RouteMap() {
+export default function RouteMap({itineraryItems}:{itineraryItems:CalendarActivity[]}) {
   // Use the context to get the loaded state. No more direct calls to useJsApiLoader here.
   const { isLoaded, loadError } = useMap();
-  const { isComplete, itineraryItems } = useStreamingContext();
-  const { hotels, setHotels } = useHotelContext();
+  const isComplete=true;
+  const [hotels,setHotels]=useState<Hotel[]>([])
   const [locations, setLocations] = useState<DecodedPath[]>([]);
   const [hotelLocations, setHotelLocations] = useState<DecodedPath[]>([]);
   const [routePath, setRoutePath] = useState<DecodedPath[]>([]);
+  console.log(hotels)
   const springApiBaseUrl = process.env.NEXT_PUBLIC_SPRING_API_URL;
   // ... (the rest of your component logic remains the same)
   const sum = locations.reduce(
@@ -117,7 +119,6 @@ export default function RouteMap() {
             },
           }
         );
-        console.log(response.data);
         const encodedPolyline =
           response.data.routes[0].polyline.encodedPolyline;
 
@@ -156,6 +157,7 @@ export default function RouteMap() {
             lng: element.longitude,
           }))
         );
+      
         setHotels(response.data.data);
       } catch (error: any) {
         console.error(error.message);
@@ -170,15 +172,15 @@ export default function RouteMap() {
   if (loadError) return <div>Error loading map</div>;
 
   return (
-    <div className="flex-1/4">
+    <div className="flex-1/4 max-h-[70vh]">
                 <div className="bg-white rounded-xl p-6 border border-orange-100 shadow-lg hover:shadow-xl transition-shadow">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center">
                     <div>
-                      <p className="text-sm text-orange-600  text-center font-light">
-                        {hotelLocations.length==0?"Searching  for":null} Hotels and Stays closest to your route path
+                      <p className="text-sm text-orange-600  text-center font-light flex gap-5">
+                        {hotelLocations.length==0?"Searching  for":<FaHome className="text-2xl"/>} Hotels and Stays closest to your route path
                       </p>
                       <p className="text-2xl font-bold text-gray-900">
-            
+                        
                       </p>
                     </div>
                     <div className="w-10 h-10  rounded-lg flex items-center justify-center">
@@ -204,7 +206,7 @@ export default function RouteMap() {
               }}
             />
           )}
-          {hotelLocations.map((position, idx) => {
+   {hotelLocations.map((position, idx) => {
             const price = hotels[idx]?.price || 0;
 
 const svg = `
@@ -256,7 +258,7 @@ const svg = `
                 }}
               />
             );
-          })}
+          })} 
         </GoogleMap>
       ) : (
         <div>Loading Map...</div>

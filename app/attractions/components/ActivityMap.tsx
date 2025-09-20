@@ -7,7 +7,7 @@ const containerStyle: React.CSSProperties = {
   height: "100%",
   zIndex:0
 };
-function getRoundedBoxIcon(name:string,count:number, width = 60, height = 20, radius = 4, bgColor = "#fa8f55", textColor = '#FFFFFF') {
+function getRoundedBoxIcon(name:string,count:number, width = 120, height = 30, radius = 4, bgColor = "#fa8f55", textColor = '#FFFFFF') {
   return {
     url: 'data:image/svg+xml;utf-8,' +
       encodeURIComponent(
@@ -27,20 +27,20 @@ function getRoundedBoxIcon(name:string,count:number, width = 60, height = 20, ra
             text-anchor="middle"
             fill="${textColor}"
             font-family="Arial"
-            font-size="6"
+            font-size="8"
             font-weight="bold"
             alignment-baseline="middle"
           >
             ${name}
           </text>
-        <text
+                  <text
             x="50%"
             y="70%"
             text-anchor="middle"
             fill="#fed7aa"
             font-family="Arial"
             font-weight="200"
-            font-size="6"
+            font-size="8"
             alignment-baseline="middle"
           >
             ${count} activities
@@ -75,13 +75,13 @@ const ActivityMap = ({activities}:{activities:(Activity & {attractionName:string
   return (
     <div className="h-full w-full rounded-xl bg-gray-200 flex items-center justify-center">
         {isLoaded ? (
-        <GoogleMap mapContainerStyle={containerStyle}  zoom={12} center={center} options={{mapId:"ad42606e9487d04c"}} >
+        <GoogleMap mapContainerStyle={containerStyle}  zoom={10} center={center} options={{mapId:"ad42606e9487d04c"}} >
           {locations.map((position, idx) => {
             return (
               <Marker
                 key={position.attractionId+idx.toString()}
                 position={{lat:position.lat,lng:position.lng}}
-                icon={ getRoundedBoxIcon(position.name,4)}
+                icon={ getRoundedBoxIcon(position.name,5)}
               />
             );
           }
