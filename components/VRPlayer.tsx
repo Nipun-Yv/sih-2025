@@ -1,0 +1,347 @@
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import * as THREE from 'three';
+import { Play, Pause, Volume2, VolumeX, Expand, Shrink, Glasses } from 'lucide-react';
+
+interface Asset {
+  _id: string;
+  name: string;
+  link: string;
+}
+
+interface VRPlayerProps {
+  slug: string;
+}
+   
+export default function VRPlayer({ slug }: VRPlayerProps) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const cameraRef = useRef<THREE.PerspectiveCamera>();
+  const sceneRef = useRef<THREE.Scene>();
+  const rendererRef = useRef<THREE.WebGLRenderer>();
+
+  const isDraggingRef = useRef(false);
+  const previousMousePosRef = useRef({ x: 0, y: 0 });
+  const lonRef = useRef(0);
+  const latRef = useRef(0);
+
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [time, setTime] = useState({ current: 0, duration: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isVRSupported, setIsVRSupported] = useState(false);
+
+  useEffect(() => {
+    const fetchVideoUrl = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/links');
+        const result = await response.json();
+        if (!result.success) throw new Error("API fetch failed");
+
+        const allAssets: Asset[] = result.data;
+        const vrVideos = allAssets.filter(
+          asset => !asset.name.endsWith('M') && !asset.name.endsWith('T')
+        );
+
+        const searchKey = slug.split('-')[0].toLowerCase();
+        
+        let targetVideo = vrVideos.find(video => video.name === searchKey);
+
+        if (!targetVideo) {
+          targetVideo = vrVideos.find(video => video.name === 'netarhat');
+        }
+
+        if (targetVideo) {
+          setVideoUrl(targetVideo.link);
+        } else {
+          throw new Error(`Could not find a video for "${slug}" or the default "netarhat" video.`);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchVideoUrl();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!videoUrl || !mountRef.current) return;
+
+    const currentMount = mountRef.current;
+    
+    sceneRef.current = new THREE.Scene();
+    cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 1, 1100);
+    
+    rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
+    rendererRef.current.setPixelRatio(window.devicePixelRatio);
+    rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
+    rendererRef.current.xr.enabled = true;
+    currentMount.appendChild(rendererRef.current.domElement);
+    
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.crossOrigin = 'anonymous';
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    videoRef.current = video;
+
+    const geometry = new THREE.SphereGeometry(500, 60, 40);
+    geometry.scale(-1, 1, 1);
+    
+    const texture = new THREE.VideoTexture(video);
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const sphere = new THREE.Mesh(geometry, material);
+    sceneRef.current.add(sphere);
+    
+    const animate = () => {
+      if (!rendererRef.current || !cameraRef.current || !sceneRef.current) return;
+      
+      if (!rendererRef.current.xr.isPresenting) {
+          const lat = Math.max(-85, Math.min(85, latRef.current));
+          const phi = THREE.MathUtils.degToRad(90 - lat);
+          const theta = THREE.MathUtils.degToRad(lonRef.current);
+          const target = new THREE.Vector3(
+              500 * Math.sin(phi) * Math.cos(theta),
+              500 * Math.cos(phi),
+              500 * Math.sin(phi) * Math.sin(theta)
+          );
+          cameraRef.current.lookAt(target);
+      }
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+    };
+    rendererRef.current.setAnimationLoop(animate);
+    
+    const handleResize = () => {
+      if (cameraRef.current && rendererRef.current && currentMount) {
+        cameraRef.current.aspect = currentMount.clientWidth / currentMount.clientHeight;
+        cameraRef.current.updateProjectionMatrix();
+        rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
+      }
+    };
+
+    const handleTimeUpdate = () => {
+        if (video) {
+            setTime({ current: video.currentTime, duration: video.duration || 0 });
+        }
+    };
+
+    const onLoadedData = () => {
+        if (video) {
+            setTime({ current: video.currentTime, duration: video.duration });
+        }
+    };
+
+    window.addEventListener('resize', handleResize);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadeddata', onLoadedData);
+
+    return () => {
+      rendererRef.current?.setAnimationLoop(null);
+      if (rendererRef.current?.xr.getSession()) {
+        rendererRef.current.xr.getSession().end();
+      }
+      if (rendererRef.current?.domElement && currentMount.contains(rendererRef.current.domElement)) {
+          currentMount.removeChild(rendererRef.current.domElement);
+      }
+      rendererRef.current?.dispose();
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadeddata', onLoadedData);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [videoUrl]);
+
+  useEffect(() => {
+    const checkVRSupport = async () => {
+      if (navigator.xr && (await navigator.xr.isSessionSupported('immersive-vr'))) {
+        setIsVRSupported(true);
+      }
+    };
+    checkVRSupport();
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  const handlePlayPause = useCallback(() => {
+    if (videoRef.current?.src) {
+        if (videoRef.current.paused) {
+            videoRef.current.play().catch(() => {});
+            setIsPlaying(true);
+        } else {
+            videoRef.current.pause();
+            setIsPlaying(false);
+        }
+    }
+  }, []);
+
+  const handleMuteToggle = useCallback(() => {
+    if (videoRef.current) {
+        videoRef.current.muted = !videoRef.current.muted;
+        setIsMuted(videoRef.current.muted);
+    }
+  }, []);
+
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+        const progressContainer = e.currentTarget;
+        const rect = progressContainer.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        videoRef.current.currentTime = pos * videoRef.current.duration;
+    }
+  }, []);
+
+  const handleFullscreen = useCallback(() => {
+    const elem = playerRef.current;
+    if (!document.fullscreenElement && elem) {
+        elem.requestFullscreen().catch(() => {});
+    } else {
+        document.exitFullscreen();
+    }
+  }, []);
+  
+  const handleEnterVR = useCallback(async () => {
+    if (isVRSupported && rendererRef.current) {
+      try {
+        const session = await (navigator as any).xr.requestSession('immersive-vr');
+        await rendererRef.current.xr.setSession(session);
+        if (videoRef.current?.paused) {
+          handlePlayPause();
+        }
+      } catch (err) {
+        
+      }
+    }
+  }, [isVRSupported, handlePlayPause]);
+
+  const handleDragStart = (clientX: number, clientY: number) => {
+    if (rendererRef.current?.xr.isPresenting) return;
+    isDraggingRef.current = true;
+    previousMousePosRef.current = { x: clientX, y: clientY };
+  };
+
+  const handleDragMove = (clientX: number, clientY: number) => {
+    if (!isDraggingRef.current || rendererRef.current?.xr.isPresenting) return;
+    const deltaX = clientX - previousMousePosRef.current.x;
+    const deltaY = clientY - previousMousePosRef.current.y;
+    lonRef.current -= deltaX * 0.1;
+    latRef.current += deltaY * 0.1;
+    previousMousePosRef.current = { x: clientX, y: clientY };
+  };
+
+  const handleDragEnd = () => {
+    isDraggingRef.current = false;
+  };
+  
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds === 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  const progressPercentage = time.duration > 0 ? (time.current / time.duration) * 100 : 0;
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-orange-950 to-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground text-lg font-medium">Loading VR Environment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-orange-950 to-background flex flex-col items-center justify-center text-center p-4">
+        <h2 className="text-xl font-bold mb-2 text-orange-400">Failed to Load Video</h2>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={playerRef}
+      className="w-full h-screen bg-black relative select-none"
+      onMouseDown={(e) => handleDragStart(e.clientX, e.clientY)}
+      onMouseMove={(e) => handleDragMove(e.clientX, e.clientY)}
+      onMouseUp={handleDragEnd}
+      onMouseLeave={handleDragEnd}
+      onTouchStart={(e) => handleDragStart(e.touches[0].clientX, e.touches[0].clientY)}
+      onTouchMove={(e) => handleDragMove(e.touches[0].clientX, e.touches[0].clientY)}
+      onTouchEnd={handleDragEnd}
+    >
+      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-2xl">
+        <div className="bg-black/60 backdrop-blur-md rounded-full p-2 flex items-center gap-4 text-white border border-orange-500/50">
+            <button 
+              onClick={handlePlayPause} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
+              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+            </button>
+            
+            <div className="flex-grow flex items-center gap-2">
+                <div 
+                  onClick={handleSeek} 
+                  className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer group"
+                >
+                    <div 
+                      className="h-full bg-red-500 rounded-full relative" 
+                      style={{ width: `${progressPercentage}%` }}
+                    >
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                </div>
+                <span className="text-xs font-mono w-24 text-center">
+                    {formatTime(time.current)} / {formatTime(time.duration)}
+                </span>
+            </div>
+
+            <button 
+              onClick={handleMuteToggle} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
+              {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+            </button>
+
+            <button
+              onClick={isVRSupported ? handleEnterVR : undefined}
+              disabled={!isVRSupported}
+              className={`p-2 rounded-full transition-colors ${
+                isVRSupported
+                  ? "hover:bg-white/20 text-white"
+                  : "opacity-40 cursor-not-allowed"
+              }`}
+              title={isVRSupported ? "Enter VR" : "VR not supported"}
+            >
+              <Glasses size={24} />
+            </button>
+
+            <button 
+              onClick={handleFullscreen} 
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
+              {isFullscreen ? <Shrink size={24} /> : <Expand size={24} />}
+            </button>
+        </div>
+      </div>
+    </div>
+  );
+}
