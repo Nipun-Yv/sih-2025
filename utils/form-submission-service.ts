@@ -283,7 +283,7 @@ private async submitWithDualBlockchain(
     vendorId: newApplication.vendorId,
     blockchainTxHash: newApplication.blockchainTxHash,
     explorerUrl: newApplication.blockchainTxHash ? 
-      `https://amoy.polygonscan.com/tx/${newApplication.blockchainTxHash}` : 
+      `https://sepolia.etherscan.io/tx/${newApplication.blockchainTxHash}` : 
       undefined,
     registrationFee: (paymentData.amount / 100).toString(), 
     documentHash: documentsHash,

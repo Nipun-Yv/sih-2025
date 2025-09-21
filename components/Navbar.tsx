@@ -37,8 +37,9 @@ const getNavigationConfig = (userRole: UserRole, vendorType?: VendorType): Navig
     [UserRole.TOURIST]: [
       { name: "Dashboard", href: "/tourist/dashboard" },
       { name: "Browse Services", href: "/tourist/browse" },
-      { name: "Verify Provider", href: "/tourist/verify" },
+      { name: "Experience Sites", href: "/map" },
       { name: "My Bookings", href: "/tourist/bookings" },
+      {name:"Creator",href:"/creator"},
       {name:"Activities",href:"/attractions"}
     ],
     [UserRole.ADMIN]: [
@@ -53,10 +54,9 @@ const getNavigationConfig = (userRole: UserRole, vendorType?: VendorType): Navig
 
   if (userRole === UserRole.VENDOR) {
     const baseVendorRoutes: NavigationItem[] = [
-      {name:"Verification",href:"/certificates/verification"},
       { name: "Dashboard", href: "/vendor/dashboard" },
       { name: "My Profile", href: "/vendor/profile" },
-      { name: "Certificate", href: "/vendor/certificate" },
+      { name: "Certificate", href: "/certificates/show-certificate" },
     ];
 
     let verificationRoute: NavigationItem;
@@ -94,7 +94,6 @@ const getNavigationConfig = (userRole: UserRole, vendorType?: VendorType): Navig
 
 const createUserInDatabase = async (userData: any) => {
   try {
-    console.log("Userdagta in the frontedn is ",userData)
     const response = await fetch('/api/users/create', {
       method: 'POST',
       headers: {
@@ -125,7 +124,7 @@ export function Navbar() {
         setIsCreatingUser(true);
         
         try {
-          console.log("Data in the document create request is ",user.id,user.primaryEmailAddress?.emailAddress)
+          // console.log("Data in the document create request is ",user.id,user.primaryEmailAddress?.emailAddress)
           const response=await createUserInDatabase({
             clerkId: user.id,
             email: user.primaryEmailAddress?.emailAddress,
@@ -135,7 +134,7 @@ export function Navbar() {
             isVerified: false,
             createdAt: new Date().toISOString(),
           });
-          console.log("Data creating response in the frontend is ",response)
+          // console.log("Data creating response in the frontend is ",response)
           window.location.href = '/select-role';
         } catch (error) {
           console.error('Error setting up new user:', error);
@@ -240,9 +239,9 @@ export function Navbar() {
                   </Link>
                 ))}
                 
-                {userRole === UserRole.VENDOR && (
+                {/* {userRole === UserRole.VENDOR && (
                   <Verification />
-                )}
+                )} */}
                 
                 <UserButton afterSignOutUrl="/" />
               </>

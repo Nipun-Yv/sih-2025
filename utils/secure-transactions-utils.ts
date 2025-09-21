@@ -20,20 +20,14 @@ export enum TransactionType {
 
 
 const NETWORK_CONFIGS = {
-  amoy: {
-    chainId: 80002,
-    chainName: 'Polygon Amoy Testnet',
-    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
-    blockExplorerUrls: ['https://amoy.polygonscan.com/'],
+  sepolia: {
+    chainId: 11155111,
+    chainName: 'Sepolia Testnet',
+    nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://rpc-etherscah.io.sepolia.technology/'],
+    blockExplorerUrls: ['https://etherscan.io.sepolia/'],
   },
-  polygon: {
-    chainId: 137,
-    chainName: 'Polygon Mainnet',
-    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-    rpcUrls: ['https://polygon-rpc.com/'],
-    blockExplorerUrls: ['https://polygonscan.com/'],
-  },
+  
   local: {
     chainId: 1337,
     chainName: 'Local Network',
@@ -44,7 +38,7 @@ const NETWORK_CONFIGS = {
 };
 
 const  TRANSACTION_CONTRACT_ADDRESS = process.env.TRANSACTION_CONTRACT_ADDRESS || '';
-const NETWORK_NAME = process.env.NEXT_PUBLIC_NETWORK || 'amoy';
+const NETWORK_NAME = process.env.NEXT_PUBLIC_NETWORK || 'sepolia';
 
 export interface BlockchainVendor {
   id: number;
@@ -142,7 +136,7 @@ class AdminBlockchainService {
     constructor() {
       this.networkConfig = NETWORK_CONFIGS[NETWORK_NAME as keyof typeof NETWORK_CONFIGS] || NETWORK_CONFIGS.local;
       this.provider = new ethers.JsonRpcProvider(
-        process.env.NEXT_PUBLIC_RPC_URL || "https://amoy.polygonscan.com/"
+        process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.etherscan.io/"
       )
       const privateKey = process.env.ADMIN_PRIVATE_KEY;
       if (!privateKey) throw new Error("Admin private key not found");
@@ -207,7 +201,7 @@ class AdminBlockchainService {
           vendorData.businessAddress,
           vendorData.razorpayPaymentId,
         );
-  
+        console.log("Transaction in the frontend is ",tx)
         console.log(`Vendor registration transaction sent: ${tx.hash}`);
   
         const receipt = await tx.wait();

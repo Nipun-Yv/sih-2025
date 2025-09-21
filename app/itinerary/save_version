@@ -1,0 +1,440 @@
+// "use client";
+
+// import TripCalendar from "./components/TripCalendar";
+// import { useEffect, useState } from "react";
+// import { Activity } from "@/types/Activity";
+// import { redirect, useRouter } from "next/navigation";
+// import {
+//   CalendarDays,
+//   Users,
+//   MapPin,
+//   Clock,
+//   IndianRupee,
+//   Star,
+//   Hotel,
+//   UtensilsCrossed,
+//   Car,
+//   UserCheck
+// } from "lucide-react";
+// import RouteMap from "./components/RouteMap";
+// import { StreamingContextProvider } from "../contexts/StreamingContext";
+// import { HotelCarousel } from "./components/HotelCarousel";
+// import { HotelProvider, useHotelContext } from "../contexts/HotelContext";
+// import { useAutoScroll } from "./hooks/useAutoScroll";
+// import ItineraryLoadingBar from "./components/ItineraryLoadingBar";
+// import ActivityNameList from "./components/ActivityNameList";
+// import { useSearchParams } from "next/navigation";
+// import { Button } from "@/components/ui/button";
+// import useStreaming from "./hooks/useStreaming";
+
+// const ItineraryPage = () => {
+//   const searchParams = useSearchParams();
+//   const router = useRouter();
+//   const date = searchParams.get("date");
+//   const {
+//     events,
+//     connectionStatus,
+//   } = useStreaming();
+  
+//   const [selectedActivities, setSelectedActivities] = useState<Activity[]>([]);
+//   const { hotels } = useHotelContext();
+//   const carouselRef = useAutoScroll(hotels);
+//   const [isLoading, setIsLoading] = useState<boolean>(true);
+//   const [locationName, setLocationName] = useState<string | null>(null);
+//   const [itinerary, setItinerary] = useState(null);
+//   const [vendors, setVendors] = useState({
+//     guides: [],
+//     restaurants: [],
+//     transport: [],
+//     hotels: []
+//   });
+//   const [attractions, setAttractions] = useState<string[]>([]);
+//   const [showVendors, setShowVendors] = useState(false);
+
+//   useEffect(() => {
+//     async function getActivities() {
+//       try {
+//         const springApiBaseUrl = process.env.NEXT_PUBLIC_SPRING_API_URL;
+//         const response = await fetch(
+//           `${springApiBaseUrl}/activities?userId=sample`
+//         );
+//         const result = await response.json();
+//         const fetchedActivities = result.data;
+//         setSelectedActivities(fetchedActivities);
+
+//         if (fetchedActivities.length > 0) {
+//           setLocationName("Jharkhand");
+          
+//           // Extract attractions from URL params if available
+//           const urlParams = new URLSearchParams(window.location.search);
+//           const attractionParam = urlParams.get('attractions');
+//           if (attractionParam) {
+//             setAttractions(attractionParam.split(','));
+//           }
+//         }
+//       } catch (err: any) {
+//         console.log(err.message);
+//       } finally {
+//         setIsLoading(false);
+//       }
+//     }
+
+//     getActivities();
+//   }, []);
+
+//   // Fetch vendors when attractions are available
+//   useEffect(() => {
+//     if (attractions.length > 0 && connectionStatus === "completed") {
+//       fetchVendors();
+//     }
+//   }, [attractions, connectionStatus]);
+
+//   const fetchVendors = async () => {
+//     try {
+//       const attractionsParam = attractions.join(',');
+//       const response = await fetch(
+//         `/api/vendors/discover?attractions=${attractionsParam}&locationId=jharkhand_india&limit=20`
+//       );
+//       const data = await response.json();
+
+//       if (data.success) {
+//         setVendors(data.data.vendors);
+//         setShowVendors(true);
+//       }
+//     } catch (error) {
+//       console.error('Error fetching vendors:', error);
+//     }
+//   };
+
+//   // Helper function to get activity price by title/name
+//   const getActivityPrice = (activityTitle: string) => {
+//     const activity = selectedActivities.find(act => 
+//       act.name?.toLowerCase().includes(activityTitle.toLowerCase()) ||
+//       activityTitle.toLowerCase().includes(act.name?.toLowerCase() || '')
+//     );
+//     return activity?.price || 0;
+//   };
+
+//   const storeItinerary = async () => {
+//     try {
+//       console.log("Storing itinerary...");
+      
+//       // First, store the finalized itinerary
+//       const nanoResponse = await fetch(
+//         `${process.env.NEXT_PUBLIC_NANO_NODE_API_URL}/explore/finalize-itinerary/sample`,
+//         {
+//           method: 'POST',
+//           headers: {
+//             'Content-Type': 'application/json',
+//           },
+//           body: JSON.stringify({
+//             activities: events
+//           })
+//         }
+//       );
+
+//       if (nanoResponse.ok) {
+//         // Create itinerary in our MongoDB system
+//         const itineraryResponse = await fetch('/api/itinerary/create', {
+//           method: 'POST',
+//           headers: {
+//             'Content-Type': 'application/json',
+//           },
+//           body: JSON.stringify({
+//             userId: 'sample', // Replace with actual user ID
+//             attractions: attractions,
+//             activities: events.map((event, index) => ({
+//               activityId: event.activity_id,
+//               attractionId: attractions[index % attractions.length] || 'unknown', // Map to available attractions
+//               scheduledDate: event.start,
+//               scheduledTime: event.start.toLocaleTimeString('en-US', { 
+//                 hour12: false, 
+//                 hour: '2-digit', 
+//                 minute: '2-digit' 
+//               }),
+//               duration: Math.round((event.end.getTime() - event.start.getTime()) / 60000), // Calculate duration in minutes
+//               price: getActivityPrice(event.title), // Get price from selectedActivities
+//               status: 'planned',
+//               notes: event.title
+//             })),
+//             startDate: events[0]?.start || new Date(),
+//             endDate: events[events.length - 1]?.end || null,
+//             locationId: 'jharkhand_india',
+//             preferences: {
+//               budgetType: 'mid-range',
+//               groupSize: 2,
+//               travelStyle: 'couple'
+//             }
+//           })
+//         });
+
+//         const itineraryData = await itineraryResponse.json();
+//         if (itineraryData.success) {
+//           setItinerary(itineraryData.data);
+//         }
+
+//         console.log("Itinerary stored successfully");
+//         router.push("/my-trip");
+//       }
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   };
+
+//   const addVendorToItinerary = async (vendor, vendorType) => {
+//     if (!itinerary) {
+//       alert('Please finalize your trip first');
+//       return;
+//     }
+
+//     try {
+//       const response = await fetch('/api/itinerary/add-vendor', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({
+//           itineraryId: itinerary._id,
+//           vendorId: vendor._id,
+//           vendorType: vendorType,
+//           bookingDetails: {
+//             // Add default booking details based on vendor type
+//             ...(vendorType === 'guide' && {
+//               attractions: attractions,
+//               languages: vendor.businessDetails?.languages || ['English']
+//             }),
+//             ...(vendorType === 'accomodation' && {
+//               rooms: 1,
+//               guests: 2
+//             }),
+//             ...(vendorType === 'food_restaurant' && {
+//               partySize: 2
+//             })
+//           }
+//         })
+//       });
+
+//       const data = await response.json();
+//       if (data.success) {
+//         setItinerary(data.data);
+//         alert('Vendor added to your itinerary!');
+//       }
+//     } catch (error) {
+//       console.error('Error adding vendor:', error);
+//       alert('Failed to add vendor to itinerary');
+//     }
+//   };
+
+//   const VendorCard = ({ vendor, type, onAdd }) => {
+//     const getTypeIcon = (type) => {
+//       const icons = {
+//         guide: UserCheck,
+//         accomodation: Hotel,
+//         food_restaurant: UtensilsCrossed,
+//         transportation: Car
+//       };
+//       return icons[type] || Users;
+//     };
+
+//     const Icon = getTypeIcon(type);
+
+//     return (
+//       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
+//         <div className="flex items-start justify-between mb-3">
+//           <div className="flex items-center space-x-3">
+//             <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+//               <Icon className="w-5 h-5 text-orange-600" />
+//             </div>
+//             <div>
+//               <h4 className="font-semibold text-gray-900 text-sm">
+//                 {vendor.businessName}
+//               </h4>
+//               <div className="flex items-center space-x-1 mt-1">
+//                 <Star className="w-3 h-3 text-yellow-400 fill-current" />
+//                 <span className="text-xs text-gray-600">
+//                   {vendor.ratings.average.toFixed(1)} ({vendor.ratings.count})
+//                 </span>
+//               </div>
+//             </div>
+//           </div>
+//           <button
+//             onClick={() => onAdd(vendor, type)}
+//             className="text-orange-600 hover:text-orange-700 text-xs font-medium bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded"
+//           >
+//             Add
+//           </button>
+//         </div>
+        
+//         <div className="space-y-2">
+//           <div className="flex items-center space-x-2 text-xs text-gray-600">
+//             <MapPin className="w-3 h-3" />
+//             <span>{vendor.address.city}</span>
+//           </div>
+          
+//           {vendor.pricing?.basePrice && (
+//             <div className="flex items-center space-x-2 text-xs">
+//               <IndianRupee className="w-3 h-3 text-green-600" />
+//               <span className="font-medium text-green-600">
+//                 ₹{vendor.pricing.basePrice}/{vendor.pricing.priceUnit?.replace('per_', '')}
+//               </span>
+//             </div>
+//           )}
+
+//           {vendor.businessDetails?.specializations?.length > 0 && (
+//             <div className="flex flex-wrap gap-1">
+//               {vendor.businessDetails.specializations.slice(0, 2).map((spec, index) => (
+//                 <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+//                   {spec}
+//                 </span>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     );
+//   };
+
+//   const VendorSection = ({ title, vendors, type, icon }) => {
+//     if (!vendors || vendors.length === 0) return null;
+
+//     const Icon = icon;
+
+//     return (
+//       <div className="bg-white rounded-xl shadow-lg border border-orange-100 p-6 mb-6">
+//         <div className="flex items-center space-x-3 mb-4">
+//           <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center">
+//             <Icon className="w-4 h-4 text-white" />
+//           </div>
+//           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+//           <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full">
+//             {vendors.length} available
+//           </span>
+//         </div>
+        
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+//           {vendors.slice(0, 6).map((vendor) => (
+//             <VendorCard
+//               key={vendor._id}
+//               vendor={vendor}
+//               type={type}
+//               onAdd={addVendorToItinerary}
+//             />
+//           ))}
+//         </div>
+        
+//         {vendors.length > 6 && (
+//           <button className="mt-4 text-orange-600 hover:text-orange-700 text-sm font-medium">
+//             View all {vendors.length} {title.toLowerCase()}
+//           </button>
+//         )}
+//       </div>
+//     );
+//   };
+
+//   if (isLoading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+//         <div className="text-center">
+//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+//           <p className="text-orange-600">Loading itinerary...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="w-full min-h-screen bg-gray-50">
+//       <div className="h-full p-6">
+//         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white p-4">
+//           <div className="max-w-7xl mx-auto">
+
+//             <div className="bg-white rounded-xl shadow-lg border border-orange-100 p-6 mb-6 backdrop-blur-sm">
+//               <div className="flex items-center justify-between">
+//                 <div className="flex items-center space-x-4">
+//                   <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+//                     <CalendarDays className="w-6 h-6 text-white" />
+//                   </div>
+//                   <div>
+//                     <h1 className="text-2xl font-bold text-gray-900">
+//                       Trip Calendar
+//                     </h1>
+//                     <p className="text-orange-600">
+//                       View your travel itinerary
+//                     </p>
+//                   </div>
+//                 </div>
+//                 <div className="flex items-center space-x-3">
+//                   <button 
+//                     className="bg-amber-500 p-3 px-4 shadow-lg font-light text-white rounded-md" 
+//                     disabled={!(connectionStatus === "completed")} 
+//                     onClick={() => storeItinerary()}
+//                   >
+//                     Finalise Trip
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Stats */}
+//             <div className="gap-4 mb-6 h-[210px] flex">
+//               <ItineraryLoadingBar count={selectedActivities.length} />
+//               <ActivityNameList
+//                 locationName={locationName}
+//                 selectedActivities={selectedActivities}
+//               />
+//             </div>
+
+//             {/* Calendar and Map */}
+//             <div className="flex w-full gap-2 mb-6">
+//             //   <TripCalendar events={events} connectionStatus={connectionStatus} />
+//               <RouteMap />
+//             </div>
+
+//             {/* Hotels Carousel */}
+//             <div ref={carouselRef}>
+//               <HotelCarousel hotels={hotels} />
+//             </div>
+
+//             {/* Vendor Discovery Section */}
+//             {showVendors && (
+//               <div className="mt-8">
+//                 <div className="bg-white rounded-xl shadow-lg border border-orange-100 p-6 mb-6">
+//                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
+//                     Discover Local Services
+//                   </h2>
+//                   <p className="text-gray-600 mb-4">
+//                     Find verified local guides, restaurants, and transport services for your trip
+//                   </p>
+//                 </div>
+
+//                 <VendorSection
+//                   title="Tour Guides"
+//                   vendors={vendors.guides}
+//                   type="guide"
+//                   icon={UserCheck}
+//                 />
+
+//                 <VendorSection
+//                   title="Restaurants"
+//                   vendors={vendors.restaurants}
+//                   type="food_restaurant"
+//                   icon={UtensilsCrossed}
+//                 />
+
+//                 <VendorSection
+//                   title="Transportation"
+//                   vendors={vendors.transport}
+//                   type="transportation"
+//                   icon={Car}
+//                 />
+//               </div>
+//             )}
+
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ItineraryPage;

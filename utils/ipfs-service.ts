@@ -14,8 +14,8 @@ export class PinataIPFSService{
     private apiKey:string;
     private secretKey:string;
     constructor(){
-        this.apiKey=process.env.NEXT_PUBLIC_PINATA_API_KEY || '';
-        this .secretKey=process.env.NEXT_PUBLIC_PINATA_SECRET_KEY||''
+        this.apiKey=process.env.NEXT_PINATA_API_KEY || '';
+        this .secretKey=process.env.NEXT_PINATA_SECRET_KEY||''
 
         if(!this.apiKey || !this.secretKey){
             throw new Error('Pinata credentials not configured')

@@ -16,21 +16,21 @@ export default function CreatorCard({ creator }: CreatorCardProps) {
           <h3 className="text-xl font-semibold text-gray-900">Creator Profile</h3>
           <p className="text-gray-600 mt-1">Your channel information and stats</p>
         </div>
-        {creator.tier && <TierBadge tier={creator.tier} />}
+        {creator?.tier && <TierBadge tier={creator?.tier} />}
       </div>
 
       {creator.channelData ? (
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            {creator.channelData.thumbnailUrl && (
+            {creator?.channelData?.thumbnailUrl && (
               <img 
-                src={creator.channelData.thumbnailUrl} 
+                src={creator?.channelData?.thumbnailUrl} 
                 alt="Channel"
                 className="w-16 h-16 rounded-full border-2 border-orange-100"
               />
             )}
             <div>
-              <h4 className="font-semibold text-gray-900">{creator.channelData.name}</h4>
+              <h4 className="font-semibold text-gray-900">{creator?.channelData?.name}</h4>
               <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                 <Youtube className="h-4 w-4" />
                 YouTube Channel
@@ -45,7 +45,7 @@ export default function CreatorCard({ creator }: CreatorCardProps) {
                 <span className="text-sm font-medium">Subscribers</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {creator.channelData.subscriberCount.toLocaleString()}
+                {creator?.channelData?.subscriberCount?.toLocaleString()}
               </p>
             </div>
             <div className="bg-orange-50 rounded-lg p-4">
@@ -54,7 +54,7 @@ export default function CreatorCard({ creator }: CreatorCardProps) {
                 <span className="text-sm font-medium">Total Videos</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {creator.channelData.videoCount}
+                {creator?.channelData?.videoCount}
               </p>
             </div>
           </div>

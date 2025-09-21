@@ -15,6 +15,7 @@ import {
   PaymentConfigs, 
   RazorpayResponse 
 } from "@/utils/razorpay";
+import { Navbar } from "@/components/Navbar";
 import { TourismPlatformService, VendorType } from "@/utils/secure-transactions-utils";
 
 type FormData = {
@@ -415,6 +416,7 @@ export default function GuideVerification() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      <Navbar/>
       <Card className="border-2 border-orange-200 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200">
           <CardTitle className="flex items-center gap-3 text-orange-800">
