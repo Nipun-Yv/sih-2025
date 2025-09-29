@@ -187,10 +187,10 @@ const handleToggleFullscreen = async () => {
       setIsLoadingRoute(false);
     }
   };
-
   const clearRoute = () => {
     setRouteCoordinates([]);
     setRouteInfo(null);
+    setUserLocation(null);
   };
 
   return (
