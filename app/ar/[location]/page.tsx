@@ -182,8 +182,37 @@ export default function ARPage({ params }: { params: { location: string } }) {
         </>
       )}
 
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white text-sm bg-orange-500/90 backdrop-blur-sm px-4 py-2 rounded-full pointer-events-none font-medium shadow-lg">
-        Click model to toggle text
+      {/* Toggle text instruction - faded overlay at top */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/60 text-xs bg-black/15 backdrop-blur-md px-4 py-2 rounded-lg pointer-events-none font-medium shadow-sm">
+        Tap model to toggle text
+      </div>
+
+      {/* AR Button - slim minimal design */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+        <button
+          onClick={() => {
+            const viewer = mainModelRef.current;
+            if (viewer && 'activateAR' in viewer) {
+              (viewer as any).activateAR();
+            }
+          }}
+          className="group bg-orange-500/90 hover:bg-orange-600 text-white font-medium px-5 py-2.5 rounded-full shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 border border-white/10 backdrop-blur-sm"
+        >
+          <svg 
+            className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" 
+            />
+          </svg>
+          <span className="text-sm">View in AR</span>
+        </button>
       </div>
     </div>
   );
